@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using PuroBot.Commands;
+using PuroBot.Events;
 
 namespace PuroBot
 {
@@ -11,7 +12,6 @@ namespace PuroBot
 	{
 		static void Main(string[] args)
 		{
-			Console.WriteLine(Assembly.GetExecutingAssembly().GetName().Version);
 			if (args?.Length == 0)
 			{
 				Console.WriteLine("Please provide the bot token as an argument");
@@ -36,6 +36,12 @@ namespace PuroBot
 			});
 
 			commands.RegisterCommands(typeof(BasicCommands));
+
+			discord.MessageCreated += (sender, args) =>
+			{
+				_ = Task.Run(()=>BasicEvents.DieCrusader(sender, args));
+				return Task.CompletedTask;
+			};
 
 			await discord.ConnectAsync();
 			await Task.Delay(-1);

@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using DSharpPlus.CommandsNext;
@@ -22,25 +23,16 @@ namespace PuroBot.Commands
 				await ctx.RespondAsync("Sorry human, i can only do this in NSFW channels...");
 				return;
 			}
-			
-			var useragent = $"PuroBot/{Assembly.GetExecutingAssembly().GetName().Version} (by d3r_5h06un)";
 
-			var e621 = new E621Client(useragent);
-			var searchTask = e621.Search(new E621SearchOptions()
-			{
-				Tags = $"puro_(changed) solo rating:s order:random score:>={minScore}",
-				Limit = 1
-			});
-			
-			try
-			{
-				await searchTask;
-				var posts = searchTask.Result;
-				await ctx.RespondAsync(posts[0].File.Url);
-			}
-			catch
+			var e621 = new E621Client();
+			var url = e621.GetRandomPostsUrl("puro_(changed) rating:s solo", minScore, 1).Result.First();
+			if (url == null)
 			{
 				await ctx.RespondAsync("My camera is broken... Sorry Human.");
+			}
+			else
+			{
+				await ctx.RespondAsync(url);
 			}
 		}
 
