@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Reflection;
 using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
@@ -36,6 +35,7 @@ namespace PuroBot
 			});
 
 			commands.RegisterCommands(typeof(BasicCommands));
+			commands.RegisterCommands(typeof(ImageCommands));
 
 			discord.MessageCreated += (sender, args) =>
 			{

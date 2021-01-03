@@ -1,9 +1,6 @@
-using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
-using E621;
 
 namespace PuroBot.Commands
 {
@@ -13,27 +10,6 @@ namespace PuroBot.Commands
 		async Task PingCommand(CommandContext ctx)
 		{
 			await ctx.RespondAsync($"Hello {ctx.Member.Mention}!");
-		}
-
-		[Command("selfie"), Aliases("s"), Description("Get a random image of me")]
-		async Task SelfieCommand(CommandContext ctx, [Description("minimum e621 score (default: 10)")] int minScore = 10)
-		{
-			if (!ctx.Channel.IsNSFW) //e621 rating safe may not be appropriate in SFW channels
-			{
-				await ctx.RespondAsync("Sorry human, i can only do this in NSFW channels...");
-				return;
-			}
-
-			var e621 = new E621Client();
-			var url = e621.GetRandomPostsUrl("puro_(changed) rating:s solo", minScore, 1).Result.First();
-			if (url == null)
-			{
-				await ctx.RespondAsync("My camera is broken... Sorry Human.");
-			}
-			else
-			{
-				await ctx.RespondAsync(url);
-			}
 		}
 
 		[Command("uwuify"), Aliases("uwu"), Description("translate a message to uwu-speak")]
