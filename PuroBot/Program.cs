@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
-using DSharpPlus.Entities;
 using PuroBot.Commands;
 
 namespace PuroBot
@@ -12,6 +11,7 @@ namespace PuroBot
 	{
 		static void Main(string[] args)
 		{
+			Console.WriteLine(Assembly.GetExecutingAssembly().GetName().Version);
 			if (args?.Length == 0)
 			{
 				Console.WriteLine("Please provide the bot token as an argument");
