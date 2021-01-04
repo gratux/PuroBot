@@ -1,67 +1,67 @@
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DSharpPlus;
-using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 
 namespace PuroBot.Events
 {
 	public class BasicEvents
 	{
-		public static async Task DieCrusader(DiscordClient sender, MessageCreateEventArgs e)
+		public static async Task LostCrusader(DiscordClient sender, MessageCreateEventArgs e)
 		{
+			//ignore bots, they might have a reason to be here
 			if (e.Author.IsBot)
 				return;
 
 			var allRoles = e.Guild.Roles.Values.ToArray();
-			var allMembers = e.Guild.Members.Values.ToArray();
-			var allChannels = e.Guild.Channels.Values.ToArray();
+			//var allMembers = e.Guild.Members.Values.ToArray();
+			var allMembers = e.Guild.GetAllMembersAsync().Result.ToArray();
 
+			//why are DiscordMember and DiscordUser two different things ?!
+			var authorMember = allMembers.First(member => member.Id == e.Author.Id);
+
+			//hard-coded value for a specific server
+			//(then again, this whole function serves no purpose for other servers)
+			//this is not clean at all
+			//too bad...
 			var crusaderRole = allRoles.FirstOrDefault(role => role.Name == "Crusader");
 			var purifierRole = allRoles.FirstOrDefault(role => role.Name == "The Purifiers");
 			var hereticRole = allRoles.FirstOrDefault(role => role.Name == "Heretic");
 			var changedRole = allRoles.FirstOrDefault(role => role.Name == "The Changed");
 
-			var crusaderMembers = allMembers.Where(member => member.Roles.Contains(crusaderRole)).ToArray();
+			//if author is not a crusader, abort
+			if (!authorMember.Roles.Any(role => role.Equals(crusaderRole) || role.Equals(purifierRole)))
+				return;
 
-			var hereticChannels = new List<DiscordChannel>();
+			var allOverwrites = e.Channel.PermissionOverwrites.ToArray();
+			var roleOverwrites = allOverwrites.Where(ow => ow.Type == OverwriteType.Role).ToArray();
 
-			foreach (var channel in allChannels)
+			var isHereticChannel = false;
+
+			//determine if current channel belongs to the heretics
+			//criteria are: heretics have access, but crusaders do not
+			foreach (var overwrite in roleOverwrites)
 			{
-				var allOverwrites = channel.PermissionOverwrites.ToArray();
-				var roleOverwrites = allOverwrites.Where(ow => ow.Type == OverwriteType.Role).ToArray();
+				var owRole = await overwrite.GetRoleAsync(); //this takes very long. why?! is there no better way?!
+				var owPermission = overwrite.CheckPermission(Permissions.AccessChannels);
 
-				var heretic = false;
-				foreach (var overwrite in roleOverwrites)
+				if (owRole.Id == crusaderRole?.Id && owPermission == PermissionLevel.Allowed ||
+				    owRole.Id == purifierRole?.Id && owPermission == PermissionLevel.Allowed
+				) //crusaders are granted access, not heretic channel
 				{
-					var owRole = overwrite.GetRoleAsync().Result;
-					var owPermission = overwrite.CheckPermission(Permissions.AccessChannels);
-
-					if (owRole.Id == crusaderRole?.Id && owPermission == PermissionLevel.Allowed ||
-					    owRole.Id == purifierRole?.Id && owPermission == PermissionLevel.Allowed
-					) //crusaders are granted access, not heretic channel
-					{
-						heretic = false;
-						break;
-					}
-
-					if (!(owRole.Id == hereticRole?.Id && owPermission == PermissionLevel.Allowed ||
-					      owRole.Id == changedRole?.Id && owPermission == PermissionLevel.Allowed)
-					) //current role override not for heretics, skip to next
-					{
-						continue;
-					}
-
-					heretic = true;
+					isHereticChannel = false;
+					break;
 				}
 
-				if (heretic)
-					hereticChannels.Add(channel);
+				if (!(owRole.Id == hereticRole?.Id && owPermission == PermissionLevel.Allowed ||
+				      owRole.Id == changedRole?.Id && owPermission == PermissionLevel.Allowed)
+				) //heretics have access; let's hope the crusaders don't
+				{
+					isHereticChannel = true;
+				}
 			}
-
-			var authorMember = crusaderMembers.FirstOrDefault(member => member.Id == e.Author.Id);
-			if (authorMember?.Id == e.Author.Id && hereticChannels.Contains(e.Channel))
+			
+			if (isHereticChannel)
 			{
 				await e.Message.DeleteAsync(":MagicFox:");
 				var e621 = new E621Client();
@@ -72,7 +72,15 @@ namespace PuroBot.Events
 					var responseTask =
 						e.Message.RespondAsync(
 							"Bad human, this channel is not meant for you. Have some heresy as punishment!");
-					var heresyTask = authorMember.SendMessageAsync(string.Join('\n', urls));
+					//var heresyTask = authorMember.SendMessageAsync(string.Join('\n', urls));
+					var heresyTask = Task.Run(async () =>
+					{
+						foreach (var url in urls)
+						{
+							Task.WaitAll(authorMember.SendMessageAsync(url));
+							await Task.Delay(1000); //TODO: better anti-rate-limit
+						}
+					});
 					Task.WaitAll(responseTask, heresyTask);
 					await Task.Delay(5000);
 					await responseTask.Result.DeleteAsync();

@@ -26,7 +26,9 @@ namespace PuroBot
 			var discord = new DiscordClient(new DiscordConfiguration()
 			{
 				Token = token,
-				TokenType = TokenType.Bot
+				TokenType = TokenType.Bot,
+				Intents = DiscordIntents.AllUnprivileged
+				          | DiscordIntents.GuildMembers
 			});
 
 			var commands = discord.UseCommandsNext(new CommandsNextConfiguration()
@@ -39,7 +41,7 @@ namespace PuroBot
 
 			discord.MessageCreated += (sender, args) =>
 			{
-				_ = Task.Run(()=>BasicEvents.DieCrusader(sender, args));
+				_ = Task.Run(() => BasicEvents.LostCrusader(sender, args));
 				return Task.CompletedTask;
 			};
 
