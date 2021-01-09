@@ -37,6 +37,7 @@ namespace PuroBot
 			});
 
 			commands.RegisterCommands(typeof(BasicCommands));
+			commands.RegisterCommands(typeof(UwuCommands));
 			commands.RegisterCommands(typeof(ImageCommands));
 
 			discord.MessageCreated += (sender, args) =>
