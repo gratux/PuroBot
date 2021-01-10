@@ -9,19 +9,21 @@ namespace PuroBot
 {
 	public class E621Client : E621.E621Client
 	{
-		static readonly string UserAgent = $"PuroBot/{Assembly.GetExecutingAssembly().GetName().Version} (by d3r_5h06un)";
-		static readonly Semaphore Sp = new Semaphore(1, 1);
+		private static readonly string UserAgent =
+			$"PuroBot/{Assembly.GetExecutingAssembly().GetName().Version} (by d3r_5h06un)";
 
-		public E621Client() : base (UserAgent)
+		private static readonly Semaphore Sp = new Semaphore(1, 1);
+
+		public E621Client() : base(UserAgent)
 		{
 		}
 
-		public async Task<IList<string>> GetRandomPostsUrl(string tags, int minScore, int count)
+		public async Task<List<string>> GetPostUrls(string tags, int count, int minScore = 10)
 		{
 			Sp.WaitOne();
-			var searchTask = Search(new E621SearchOptions()
+			var searchTask = Search(new E621SearchOptions
 			{
-				Tags = $"{tags} order:random score:>={minScore}",
+				Tags = $"{tags} score:>={minScore}",
 				Limit = count
 			});
 

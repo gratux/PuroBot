@@ -5,16 +5,16 @@ using DSharpPlus.EventArgs;
 
 namespace PuroBot.Events
 {
-	public class BasicEvents
+	internal static class BasicEvents
 	{
-		public static async Task LostCrusader(DiscordClient sender, MessageCreateEventArgs e)
+		public static async Task LostCrusader(MessageCreateEventArgs e)
 		{
 			//ignore bots, they might have a reason to be here
 			if (e.Author.IsBot)
 				return;
 
 			var allRoles = e.Guild.Roles.Values.ToArray();
-			//var allMembers = e.Guild.Members.Values.ToArray();
+			//var allMembers = e.Guild.Members.Values.ToArray(); //doesn't get all members; why?!
 			var allMembers = e.Guild.GetAllMembersAsync().Result.ToArray();
 
 			//why are DiscordMember and DiscordUser two different things ?!
@@ -56,16 +56,14 @@ namespace PuroBot.Events
 				if (!(owRole.Id == hereticRole?.Id && owPermission == PermissionLevel.Allowed ||
 				      owRole.Id == changedRole?.Id && owPermission == PermissionLevel.Allowed)
 				) //heretics have access; let's hope the crusaders don't
-				{
 					isHereticChannel = true;
-				}
 			}
-			
+
 			if (isHereticChannel)
 			{
 				await e.Message.DeleteAsync(":MagicFox:");
 				var e621 = new E621Client();
-				var urls = e621.GetRandomPostsUrl("reaction_image rating:s", 10, 10).Result;
+				var urls = e621.GetPostUrls("reaction_image rating:s order:random", 10).Result;
 
 				if (urls.Count > 0)
 				{
@@ -73,14 +71,7 @@ namespace PuroBot.Events
 						e.Message.RespondAsync(
 							"Bad human, this channel is not meant for you. Have some heresy as punishment!");
 					//var heresyTask = authorMember.SendMessageAsync(string.Join('\n', urls));
-					var heresyTask = Task.Run(async () =>
-					{
-						foreach (var url in urls)
-						{
-							Task.WaitAll(authorMember.SendMessageAsync(url));
-							await Task.Delay(1000); //TODO: better anti-rate-limit
-						}
-					});
+					var heresyTask = Helpers.SendMany(urls, msg => authorMember.SendMessageAsync(msg));
 					Task.WaitAll(responseTask, heresyTask);
 					await Task.Delay(5000);
 					await responseTask.Result.DeleteAsync();

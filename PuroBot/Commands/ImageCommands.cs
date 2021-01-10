@@ -1,15 +1,17 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
-using E621;
 
 namespace PuroBot.Commands
 {
-	public class ImageCommands : BaseCommandModule
+	[SuppressMessage("ReSharper", "UnusedMember.Local")]
+	internal class ImageCommands : BaseCommandModule
 	{
-		[Command("e621"), Description("get posts from e621.net")]
-		public async Task E621Command(CommandContext ctx,
+		[Command("e621")]
+		[Description("get posts from e621.net")]
+		private async Task E621Command(CommandContext ctx,
 			[Description("the number of posts to request")]
 			int count = 5,
 			[RemainingText] [Description("the tags to be searched")]
@@ -22,16 +24,15 @@ namespace PuroBot.Commands
 			}
 
 			var e621 = new E621Client();
-			var posts = e621.Search(new E621SearchOptions()
-			{
-				Tags = tags,
-				Limit = count
-			}).Result.Select(p => p.File.Url);
-			await ctx.RespondAsync($"Here you go, human!\n{string.Join('\n', posts)}");
+			var posts = e621.GetPostUrls(tags, count).Result;
+			await ctx.RespondAsync("Here you go, human:");
+			await Helpers.SendMany(posts, msg => ctx.RespondAsync(msg));
 		}
 
-		[Command("selfie"), Aliases("s"), Description("Get a random image of me")]
-		async Task SelfieCommand(CommandContext ctx, [Description("minimum e621 score (default: 10)")]
+		[Command("selfie")]
+		[Aliases("s")]
+		[Description("Get a random image of me")]
+		private async Task SelfieCommand(CommandContext ctx, [Description("minimum e621 score (default: 10)")]
 			int minScore = 10)
 		{
 			if (!ctx.Channel.IsNSFW) //e621 rating safe may not be appropriate in SFW channels
@@ -41,15 +42,11 @@ namespace PuroBot.Commands
 			}
 
 			var e621 = new E621Client();
-			var url = e621.GetRandomPostsUrl("puro_(changed) rating:s solo", minScore, 1).Result.First();
-			if (url == null)
-			{
+			var url = e621.GetPostUrls("puro_(changed) rating:s solo", 1, minScore).Result.FirstOrDefault();
+			if (string.IsNullOrWhiteSpace(url))
 				await ctx.RespondAsync("My camera is broken... Sorry Human.");
-			}
 			else
-			{
 				await ctx.RespondAsync(url);
-			}
 		}
 	}
 }

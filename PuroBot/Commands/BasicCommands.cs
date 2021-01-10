@@ -1,13 +1,16 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 
 namespace PuroBot.Commands
 {
-	public class BasicCommands : BaseCommandModule
+	[SuppressMessage("ReSharper", "UnusedMember.Local")]
+	internal class BasicCommands : BaseCommandModule
 	{
-		[Command("ping"), Description("The human will be greeted")]
-		async Task PingCommand(CommandContext ctx)
+		[Command("ping")]
+		[Description("The human will be greeted")]
+		private async Task PingCommand(CommandContext ctx)
 		{
 			await ctx.RespondAsync($"Hello {ctx.Member.Mention}!");
 		}

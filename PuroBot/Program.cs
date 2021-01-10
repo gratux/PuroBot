@@ -7,9 +7,9 @@ using PuroBot.Events;
 
 namespace PuroBot
 {
-	class Program
+	internal static class Program
 	{
-		static void Main(string[] args)
+		private static void Main(string[] args)
 		{
 			if (args?.Length == 0)
 			{
@@ -21,9 +21,9 @@ namespace PuroBot
 			MainAsync(token).GetAwaiter().GetResult();
 		}
 
-		static async Task MainAsync(string token)
+		private static async Task MainAsync(string token)
 		{
-			var discord = new DiscordClient(new DiscordConfiguration()
+			var discord = new DiscordClient(new DiscordConfiguration
 			{
 				Token = token,
 				TokenType = TokenType.Bot,
@@ -31,7 +31,7 @@ namespace PuroBot
 				          | DiscordIntents.GuildMembers
 			});
 
-			var commands = discord.UseCommandsNext(new CommandsNextConfiguration()
+			var commands = discord.UseCommandsNext(new CommandsNextConfiguration
 			{
 				StringPrefixes = new[] {"~"}
 			});
@@ -42,7 +42,7 @@ namespace PuroBot
 
 			discord.MessageCreated += (sender, args) =>
 			{
-				_ = Task.Run(() => BasicEvents.LostCrusader(sender, args));
+				_ = Task.Run(() => BasicEvents.LostCrusader(args));
 				return Task.CompletedTask;
 			};
 
