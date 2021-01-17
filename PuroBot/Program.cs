@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using PuroBot.Commands;
-using PuroBot.Events;
 
 namespace PuroBot
 {
@@ -39,12 +38,13 @@ namespace PuroBot
 			commands.RegisterCommands(typeof(BasicCommands));
 			commands.RegisterCommands(typeof(UwuCommands));
 			commands.RegisterCommands(typeof(ImageCommands));
+			commands.RegisterCommands(typeof(JaySayCommands));
 
-			discord.MessageCreated += (sender, args) =>
-			{
-				_ = Task.Run(() => BasicEvents.LostCrusader(args));
-				return Task.CompletedTask;
-			};
+			// discord.MessageCreated += (sender, args) =>
+			// {
+			// 	_ = Task.Run(() => RoleEvents.RoleManager(args));
+			// 	return Task.CompletedTask;
+			// };
 
 			await discord.ConnectAsync();
 			await Task.Delay(-1);

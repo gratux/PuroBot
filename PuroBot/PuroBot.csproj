@@ -3,7 +3,7 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <TargetFramework>netcoreapp3.1</TargetFramework>
-        <AssemblyVersion>0.1.2.*</AssemblyVersion>
+        <AssemblyVersion>0.2.0.*</AssemblyVersion>
         <Deterministic>false</Deterministic>
     </PropertyGroup>
 
@@ -11,6 +11,22 @@
       <PackageReference Include="DSharpPlus" Version="4.0.0-rc1" />
       <PackageReference Include="DSharpPlus.CommandsNext" Version="4.0.0-rc1" />
       <PackageReference Include="E621Client" Version="0.0.3" />
+      <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="7.22.3" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="Resources/**">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Update="Resources\JaySayPlate_Background.png">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Update="Resources\JaySayPlate_Fingers.png">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Update="Resources\JaySayWriting.png">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 
 </Project>
