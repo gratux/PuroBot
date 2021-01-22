@@ -10,9 +10,10 @@ namespace PuroBot.Commands
 	[SuppressMessage("ReSharper", "UnusedMember.Global")]
 	internal class JaySayCommands : BaseCommandModule
 	{
-		private const string PlateBg = "Resources/JaySayPlate_Background.png",
-			PlateFingers = "Resources/JaySayPlate_Fingers.png",
-			WritingBg = "Resources/JaySayWriting.png";
+		private const string PlateBg = "Resources/JaySayPics/JaySayPlate_Background.png",
+			PlateFingers = "Resources/JaySayPics/JaySayPlate_Fingers.png",
+			WritingBg = "Resources/JaySayPics/JaySayWriting.png";
+
 		private static readonly MagickReadSettings TextOptions = new MagickReadSettings
 		{
 			FontFamily = "Handgley",
@@ -22,9 +23,11 @@ namespace PuroBot.Commands
 			Height = 330,
 			Width = 500
 		};
-		
-		[Command("jaysay"),Description("pay Jay-R to write a message for you")]
-		public async Task JaySayCommand(CommandContext ctx, [RemainingText, Description("the message to be written")] string message)
+
+		[Command("jaysay")]
+		[Description("pay Jay-R to write a message for you")]
+		public async Task JaySayCommand(CommandContext ctx, [RemainingText] [Description("the message to be written")]
+			string message)
 		{
 			try
 			{

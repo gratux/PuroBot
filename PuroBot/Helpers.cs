@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using DSharpPlus.Entities;
@@ -44,6 +43,7 @@ namespace PuroBot
 		{
 			return StartsWithAny(s, c, out _);
 		}
+
 		public static bool StartsWithAny(this string s, IEnumerable<string> c, out bool endsAfterStart)
 		{
 			foreach (var start in c)

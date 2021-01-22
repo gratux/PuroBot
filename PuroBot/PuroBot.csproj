@@ -8,10 +8,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="DSharpPlus" Version="4.0.0-rc1" />
-      <PackageReference Include="DSharpPlus.CommandsNext" Version="4.0.0-rc1" />
-      <PackageReference Include="E621Client" Version="0.0.3" />
-      <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="7.22.3" />
+        <PackageReference Include="DSharpPlus" Version="4.0.0-rc1" />
+        <PackageReference Include="DSharpPlus.CommandsNext" Version="4.0.0-rc1" />
+        <PackageReference Include="DSharpPlus.VoiceNext" Version="4.0.0-rc1" />
+        <PackageReference Include="E621Client" Version="0.0.3" />
+        <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="7.23.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -19,12 +20,24 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
         <Content Update="Resources\JaySayPlate_Background.png">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
         <Content Update="Resources\JaySayPlate_Fingers.png">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
         <Content Update="Resources\JaySayWriting.png">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <None Include="botkey.txt">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <Content Update="Resources\JaySayPics\JaySayPlate_Background.png">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Update="Resources\JaySayPics\JaySayPlate_Fingers.png">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Update="Resources\JaySayPics\JaySayWriting.png">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>

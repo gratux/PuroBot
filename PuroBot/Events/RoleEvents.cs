@@ -1,10 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Threading.Tasks;
-using DSharpPlus;
-using DSharpPlus.Entities;
-using DSharpPlus.EventArgs;
-
 namespace PuroBot.Events
 {
 	// internal static class RoleEvents

@@ -1,7 +1,8 @@
-﻿using System;
+﻿using System.IO;
 using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
+using DSharpPlus.VoiceNext;
 using PuroBot.Commands;
 
 namespace PuroBot
@@ -10,13 +11,14 @@ namespace PuroBot
 	{
 		private static void Main(string[] args)
 		{
-			if (args?.Length == 0)
-			{
-				Console.WriteLine("Please provide the bot token as an argument");
-				return;
-			}
-
-			var token = args?[0];
+			// if (args?.Length == 0)
+			// {
+			// 	Console.WriteLine("Please provide the bot token as an argument");
+			// 	return;
+			// }
+			//
+			// var token = args?[0];
+			var token = File.ReadAllText("botkey.txt").Trim();
 			MainAsync(token).GetAwaiter().GetResult();
 		}
 
@@ -30,15 +32,18 @@ namespace PuroBot
 				          | DiscordIntents.GuildMembers
 			});
 
+			discord.UseVoiceNext();
+
 			var commands = discord.UseCommandsNext(new CommandsNextConfiguration
 			{
 				StringPrefixes = new[] {"~"}
 			});
 
-			commands.RegisterCommands(typeof(BasicCommands));
-			commands.RegisterCommands(typeof(UwuCommands));
-			commands.RegisterCommands(typeof(ImageCommands));
-			commands.RegisterCommands(typeof(JaySayCommands));
+			commands.RegisterCommands<BasicCommands>();
+			commands.RegisterCommands<UwuCommands>();
+			commands.RegisterCommands<ImageCommands>();
+			commands.RegisterCommands<JaySayCommands>();
+			commands.RegisterCommands<SoundCommands>();
 
 			// discord.MessageCreated += (sender, args) =>
 			// {
