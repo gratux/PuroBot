@@ -12,7 +12,7 @@ namespace PuroBot.Commands
 	public class SoundCommands : BaseCommandModule
 	{
 		private const string Audiopath = "Resources/SpeakAudio/";
-		private const string Audioext = ".pcm";
+		private const string Audioext = "pcm";
 		
 		private static SoundTimeoutManager _timeoutManager;
 
@@ -33,17 +33,17 @@ namespace PuroBot.Commands
 			(_timeoutManager ??= new SoundTimeoutManager(ctx.Client)).Remove(ctx.Guild);
 
 			var vnext = ctx.Client.GetVoiceNext();
-			var connection = vnext.GetConnection(ctx.Guild);
+			var connection = vnext?.GetConnection(ctx.Guild);
 
-			connection.Disconnect();
+			connection?.Disconnect();
 		}
 
 		[Command("speak")]
 		[Description("play a sound file")]
-		public async Task SpeakCommand(CommandContext ctx, string file)
+		public async Task SpeakCommand(CommandContext ctx, [Description("the filename")]string file)
 		{
 			(_timeoutManager ??= new SoundTimeoutManager(ctx.Client)).AddOrUpdate(ctx.Guild);
-
+			
 			var vnext = ctx.Client.GetVoiceNext();
 			var connection = vnext.GetConnection(ctx.Guild);
 			if (connection == null)
@@ -57,7 +57,8 @@ namespace PuroBot.Commands
 			string path;
 			try
 			{
-				path = Directory.GetFiles(Audiopath, $"{file}{Audioext}").First();
+				var files = Directory.GetFiles(Audiopath, $"*.{Audioext}");
+				path = files.First(f => Path.GetFileNameWithoutExtension(f) == file);
 			}
 			catch (InvalidOperationException)
 			{
@@ -75,7 +76,7 @@ namespace PuroBot.Commands
 		[Description("list available sound files")]
 		public async Task ListSpeakCommand(CommandContext ctx)
 		{
-			var files = Directory.GetFiles(Audiopath, $"*{Audioext}")
+			var files = Directory.GetFiles(Audiopath, $"*.{Audioext}")
 				.Select(path => $"> {Path.GetFileNameWithoutExtension(path)}");
 			await ctx.RespondAsync($"Available files are:\n{string.Join('\n', files)}");
 		}

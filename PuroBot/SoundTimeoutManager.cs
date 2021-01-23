@@ -24,16 +24,22 @@ namespace PuroBot
 
 		public void AddOrUpdate(DiscordGuild guild)
 		{
-			if (_lastUsed.ContainsKey(guild))
-				_lastUsed[guild] = DateTime.UtcNow;
-			else
-				_lastUsed.Add(guild, DateTime.UtcNow);
+			lock (_lastUsed)
+			{
+				if (_lastUsed.ContainsKey(guild))
+					_lastUsed[guild] = DateTime.UtcNow;
+				else
+					_lastUsed.Add(guild, DateTime.UtcNow);
+			}
 		}
 
 		public void Remove(DiscordGuild guild)
 		{
-			if (_lastUsed.ContainsKey(guild))
-				_lastUsed.Remove(guild);
+			lock (_lastUsed)
+			{
+				if (_lastUsed.ContainsKey(guild))
+					_lastUsed.Remove(guild);
+			}
 		}
 
 		[SuppressMessage("ReSharper", "FunctionNeverReturns")]
@@ -41,12 +47,16 @@ namespace PuroBot
 		{
 			while (true)
 			{
-				var lastUsedCopy = new List<DiscordGuild>(_lastUsed.Keys);
-				foreach (var guild in lastUsedCopy.Where(guild =>
-					_lastUsed[guild] + _timeout <= DateTime.UtcNow))
+				DiscordGuild[] lastUsedCopy;
+				lock (_lastUsed)
+					lastUsedCopy = _lastUsed
+						.Where(p => p.Value + _timeout <= DateTime.UtcNow)
+						.Select(p => p.Key).ToArray();
+				foreach (var guild in lastUsedCopy)
 				{
 					Disconnect(guild);
-					_lastUsed.Remove(guild);
+					lock (_lastUsed)
+						_lastUsed.Remove(guild);
 				}
 			}
 		}
