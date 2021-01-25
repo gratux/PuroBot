@@ -11,9 +11,9 @@ namespace PuroBot.Commands
 {
 	public class SoundCommands : BaseCommandModule
 	{
-		private const string Audiopath = "Resources/SpeakAudio/";
-		private const string Audioext = "pcm";
-		
+		private const string BaseAudioPath = "Resources/SpeakAudio/";
+		private const string AudioExt = "pcm";
+
 		private static SoundTimeoutManager _timeoutManager;
 
 		[Command("join")]
@@ -40,10 +40,10 @@ namespace PuroBot.Commands
 
 		[Command("speak")]
 		[Description("play a sound file")]
-		public async Task SpeakCommand(CommandContext ctx, [Description("the filename")]string file)
+		public async Task SpeakCommand(CommandContext ctx, [Description("the filename")] string filename)
 		{
 			(_timeoutManager ??= new SoundTimeoutManager(ctx.Client)).AddOrUpdate(ctx.Guild);
-			
+
 			var vnext = ctx.Client.GetVoiceNext();
 			var connection = vnext.GetConnection(ctx.Guild);
 			if (connection == null)
@@ -53,12 +53,15 @@ namespace PuroBot.Commands
 			}
 
 			var transmit = connection.GetTransmitSink();
-
+// var files = Directory.GetFiles(BaseAudiopath, $"*.{AudioExt}")
+			// 	.Select(path => $"> {Path.GetFileNameWithoutExtension(path)}");
 			string path;
 			try
 			{
-				var files = Directory.GetFiles(Audiopath, $"*.{Audioext}");
-				path = files.First(f => Path.GetFileNameWithoutExtension(f) == file);
+				var files = Directory.GetFiles(BaseAudioPath, $"*.{AudioExt}", SearchOption.AllDirectories);
+
+				path = files.First(f =>
+					Path.GetRelativePath(BaseAudioPath, f) == $"{filename}.{AudioExt}");
 			}
 			catch (InvalidOperationException)
 			{
@@ -76,9 +79,9 @@ namespace PuroBot.Commands
 		[Description("list available sound files")]
 		public async Task ListSpeakCommand(CommandContext ctx)
 		{
-			var files = Directory.GetFiles(Audiopath, $"*.{Audioext}")
-				.Select(path => $"> {Path.GetFileNameWithoutExtension(path)}");
-			await ctx.RespondAsync($"Available files are:\n{string.Join('\n', files)}");
+			var files = new DirectoryInfo(BaseAudioPath).GetFileTree($"*.{AudioExt}")
+				.Skip(1);
+			await ctx.RespondAsync($"Available files are:```\n{string.Join('\n', files)}\n```");
 		}
 	}
 }
