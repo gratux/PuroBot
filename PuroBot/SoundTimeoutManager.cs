@@ -11,9 +11,9 @@ namespace PuroBot
 {
 	public class SoundTimeoutManager
 	{
+		private readonly DiscordClient _client;
 		private readonly Dictionary<DiscordGuild, DateTime> _lastUsed = new Dictionary<DiscordGuild, DateTime>();
 		private readonly TimeSpan _timeout = new TimeSpan(0, 5, 0);
-		private readonly DiscordClient _client;
 
 		public SoundTimeoutManager(DiscordClient client)
 		{
@@ -49,14 +49,19 @@ namespace PuroBot
 			{
 				DiscordGuild[] lastUsedCopy;
 				lock (_lastUsed)
+				{
 					lastUsedCopy = _lastUsed
 						.Where(p => p.Value + _timeout <= DateTime.UtcNow)
 						.Select(p => p.Key).ToArray();
+				}
+
 				foreach (var guild in lastUsedCopy)
 				{
 					Disconnect(guild);
 					lock (_lastUsed)
+					{
 						_lastUsed.Remove(guild);
+					}
 				}
 			}
 		}

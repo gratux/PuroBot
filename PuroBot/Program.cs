@@ -9,6 +9,7 @@ namespace PuroBot
 {
 	internal static class Program
 	{
+		public static SoundTimeoutManager SoundTimeoutManager;
 		private static void Main(string[] args)
 		{
 			// if (args?.Length == 0)
@@ -31,6 +32,8 @@ namespace PuroBot
 				Intents = DiscordIntents.AllUnprivileged
 				          | DiscordIntents.GuildMembers
 			});
+			
+			SoundTimeoutManager = new SoundTimeoutManager(discord);
 
 			discord.UseVoiceNext();
 
@@ -42,8 +45,9 @@ namespace PuroBot
 			commands.RegisterCommands<BasicCommands>();
 			commands.RegisterCommands<UwuCommands>();
 			commands.RegisterCommands<ImageCommands>();
-			commands.RegisterCommands<JaySayCommands>();
+			commands.RegisterCommands<ReactionCommands>();
 			commands.RegisterCommands<SoundCommands>();
+			commands.RegisterCommands<SpeakCommands>();
 
 			// discord.MessageCreated += (sender, args) =>
 			// {

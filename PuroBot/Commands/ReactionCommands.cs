@@ -8,7 +8,7 @@ using ImageMagick;
 namespace PuroBot.Commands
 {
 	[SuppressMessage("ReSharper", "UnusedMember.Global")]
-	internal class JaySayCommands : BaseCommandModule
+	internal class ReactionCommands : BaseCommandModule
 	{
 		private const string PlateBg = "Resources/JaySayPics/JaySayPlate_Background.png",
 			PlateFingers = "Resources/JaySayPics/JaySayPlate_Fingers.png",
