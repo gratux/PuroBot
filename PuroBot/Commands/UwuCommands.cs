@@ -11,7 +11,8 @@ namespace PuroBot.Commands
 	[SuppressMessage("ReSharper", "UnusedMember.Local")]
 	internal class UwuCommands : BaseCommandModule
 	{
-		private static readonly string[] Kaomoji = {
+		private static readonly string[] Kaomoji =
+		{
 			"(*^ω^)",
 			"(◕‿◕✿)",
 			"(◕ᴥ◕)",
@@ -27,10 +28,11 @@ namespace PuroBot.Commands
 			">w<",
 			"^w^",
 			"(つ✧ω✧)つ",
-			"(/ =ω=)/",
+			"(/ =ω=)/"
 		};
-		
+
 		private static readonly Random Rnd = new Random();
+
 		private static string UwuTranslate(string msg)
 		{
 			msg = Regex.Replace(msg, @"(?:l|r)", "w");
@@ -42,7 +44,7 @@ namespace PuroBot.Commands
 			msg = Regex.Replace(msg, @"!+", $"{Kaomoji[Rnd.Next(Kaomoji.Length)]}");
 			return msg;
 		}
-		
+
 		// str = str.replace(/(?:l|r)/g, 'w');
 		// str = str.replace(/(?:L|R)/g, 'W');
 		// str = str.replace(/n([aeiou])/g, 'ny$1');
@@ -53,7 +55,7 @@ namespace PuroBot.Commands
 		// /!+/g,
 		// ` ${kaomoji[Math.floor(Math.random() * kaomoji.length)]}`
 		// );
-		
+
 		private static async Task<bool> CheckMsgEmpty(CommandContext ctx, string msg)
 		{
 			if (!string.IsNullOrWhiteSpace(msg)) return false;

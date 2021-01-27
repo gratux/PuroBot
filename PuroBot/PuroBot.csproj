@@ -88,6 +88,18 @@
         <Content Update="Resources\SpeakAudio\memes\running.pcm">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
+        <Content Update="Resources\SpeakAudio\gabriel\hewwo.pcm">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Update="Resources\SpeakAudio\gabriel\pwease.pcm">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Update="Resources\SpeakAudio\gabriel\uwu.pcm">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Update="Resources\SpeakAudio\gabriel\uwu02.pcm">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 
 </Project>

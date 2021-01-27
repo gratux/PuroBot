@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
@@ -20,6 +17,13 @@ namespace PuroBot.Commands
 			Program.SoundTimeoutManager.AddOrUpdate(ctx.Guild);
 
 			channel ??= ctx.Member.VoiceState?.Channel;
+
+			var vnext = ctx.Client.GetVoiceNext();
+			var connection = vnext?.GetConnection(ctx.Guild);
+			if (connection?.TargetChannel == channel)
+				return; // already in correct channel
+
+			connection?.Disconnect();
 			await channel.ConnectAsync();
 		}
 

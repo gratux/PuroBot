@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
@@ -10,26 +11,30 @@ namespace PuroBot.Commands
 {
 	[Group("speak")]
 	[Description("play a sound file")]
+	[RequireRoles(RoleCheckMode.All, "PuroSpeak")]
 	public class SpeakCommands : SoundCommands
 	{
 		private const string BaseAudioPath = "Resources/SpeakAudio/";
 		private const string AudioExt = "pcm";
-		
+		private readonly Semaphore _sp = new Semaphore(1, 1);
+
 		[GroupCommand]
 		public async Task SpeakCommand(CommandContext ctx, [Description("the filename")] string filename)
 		{
-			(Program.SoundTimeoutManager).AddOrUpdate(ctx.Guild);
+			// var user = ctx.Member;
+			// if (user.Roles.All(r => r.Name != "Papst"))
+			// 	throw new ChecksFailedException(ctx.Command, ctx,
+			// 		new[] {new RequireRolesAttribute(RoleCheckMode.All, "Papst")});
+
+			Program.SoundTimeoutManager.AddOrUpdate(ctx.Guild);
+
+			await JoinCommand(ctx);
 
 			var vnext = ctx.Client.GetVoiceNext();
 			var connection = vnext.GetConnection(ctx.Guild);
-			if (connection == null)
-			{
-				await JoinCommand(ctx);
-				connection = vnext.GetConnection(ctx.Guild);
-			}
 
 			var transmit = connection.GetTransmitSink();
-			
+
 			string path;
 			try
 			{
@@ -45,13 +50,22 @@ namespace PuroBot.Commands
 				return;
 			}
 
-			var pcm = File.Open(path, FileMode.Open);
-			await pcm.CopyToAsync(transmit);
-			await pcm.DisposeAsync();
+			_sp.WaitOne();
+			try
+			{
+				var pcm = File.Open(path, FileMode.Open);
+				await pcm.CopyToAsync(transmit);
+				await pcm.DisposeAsync();
+			}
+			finally
+			{
+				_sp.Release();
+			}
 		}
 
 		[Command("list")]
 		[Description("list available sound files")]
+		// [RequireRoles(RoleCheckMode.All, "Papst")]
 		public async Task ListSpeakCommand(CommandContext ctx)
 		{
 			var files = new DirectoryInfo(BaseAudioPath).GetFileTree($"*.{AudioExt}")

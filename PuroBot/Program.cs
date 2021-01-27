@@ -4,12 +4,14 @@ using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.VoiceNext;
 using PuroBot.Commands;
+using PuroBot.Events;
 
 namespace PuroBot
 {
 	internal static class Program
 	{
 		public static SoundTimeoutManager SoundTimeoutManager;
+
 		private static void Main(string[] args)
 		{
 			// if (args?.Length == 0)
@@ -32,7 +34,7 @@ namespace PuroBot
 				Intents = DiscordIntents.AllUnprivileged
 				          | DiscordIntents.GuildMembers
 			});
-			
+
 			SoundTimeoutManager = new SoundTimeoutManager(discord);
 
 			discord.UseVoiceNext();
@@ -49,11 +51,7 @@ namespace PuroBot
 			commands.RegisterCommands<SoundCommands>();
 			commands.RegisterCommands<SpeakCommands>();
 
-			// discord.MessageCreated += (sender, args) =>
-			// {
-			// 	_ = Task.Run(() => RoleEvents.RoleManager(args));
-			// 	return Task.CompletedTask;
-			// };
+			commands.CommandErrored += async (ext, args) => await EventHandlers.CmdErroredHandler(ext, args);
 
 			await discord.ConnectAsync();
 			await Task.Delay(-1);
