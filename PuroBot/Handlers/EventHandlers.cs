@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Discord.WebSocket;
 using PuroBot.Services;
 
 namespace PuroBot.Handlers
@@ -14,7 +15,7 @@ namespace PuroBot.Handlers
 			{
 				if (info.IsSpecified) // if possible, log executed command
 					await LoggingService.LogAsync(new LogMessage(LogSeverity.Info, "command",
-						$"{info.Value.Name} executed"));
+						$"{info.Value.Name} executed successfully"));
 				return;
 			}
 
@@ -22,30 +23,32 @@ namespace PuroBot.Handlers
 			switch (result.Error)
 			{
 				case CommandError.UnknownCommand:
-					await context.Message.ReplyAsync($"I don't know this command.");
+					await context.Message.ReplyAsync("I don't know this command.");
 					break;
-				// case CommandError.ParseFailed:
-				// 	break;
+				
+				case CommandError.UnmetPrecondition:
 				case CommandError.BadArgCount:
-					await context.Message.ReplyAsync("Some command parameters are missing.");
+					await context.Message.ReplyAsync(result.ErrorReason);
 					break;
-				// case CommandError.ObjectNotFound:
-				// 	break;
-				// case CommandError.MultipleMatches:
-				// 	break;
-				// case CommandError.UnmetPrecondition:
-				// 	break;
-				// case CommandError.Exception:
-				// 	break;
-				// case CommandError.Unsuccessful:
-				// 	break;
+				
+				case CommandError.MultipleMatches:
+					await context.Message.ReplyAsync("Command is ambiguous, multiple definitions match.");
+					break;
+				
 				default:
+					await context.Message.ReplyAsync(result.ErrorReason);
 					if (info.IsSpecified)
 						await LoggingService.LogAsync(new LogMessage(LogSeverity.Error, "command",
 							$"{info.Value.Name} errored",
 							new CommandException(info.Value, context, new Exception(result.ErrorReason))));
 					break;
 			}
+		}
+
+		public static Task ClientReadyHandler(DiscordSocketClient client)
+		{
+			client.SetGameAsync("~help");
+			return Task.CompletedTask;
 		}
 	}
 }

@@ -3,13 +3,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
+using Discord.Rest;
 
 namespace PuroBot.Services
 {
 	public class LoggingService
 	{
-		public LoggingService(DiscordSocketClient client, CommandService command)
+		public LoggingService(BaseDiscordClient client, CommandService command)
 		{
 			client.Log += LogAsync;
 			command.Log += LogAsync;

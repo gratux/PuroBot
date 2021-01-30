@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Discord.Audio;
+using Discord;
 using Discord.Commands;
 using PuroBot.Services;
 
@@ -11,10 +11,11 @@ namespace PuroBot.Modules
 {
 	[Group("speak")]
 	[Summary("play a sound file")]
+	[RequireUserPermission(GuildPermission.Administrator)]
 	public class SpeakModule : ModuleBase<SocketCommandContext>
 	{
 		private readonly VoiceService _voice;
-		
+
 		private const string BaseAudioPath = "Resources/SpeakAudio/";
 		private const string AudioExt = "pcm";
 		private static readonly Semaphore Sp = new Semaphore(1, 1);
@@ -25,33 +26,30 @@ namespace PuroBot.Modules
 		}
 
 		[Command]
+		[Summary("play a voice line")]
 		[Priority(0)]
 		public async Task SpeakCommand([Summary("the filename")] string filename)
 		{
-			var audioInfo = await _voice.JoinChannel(Context);
-			var audioStream = audioInfo.AudioStream;
-			
-			string path;
-			try
-			{
-				var files = Directory.GetFiles(BaseAudioPath, $"*.{AudioExt}", SearchOption.AllDirectories);
+			var files = Directory.GetFiles(BaseAudioPath, $"*.{AudioExt}", SearchOption.AllDirectories);
 
-				path = files.First(f =>
-					Path.GetRelativePath(BaseAudioPath, f) == $"{filename}.{AudioExt}");
-			}
-			catch (InvalidOperationException)
+			var path = files.FirstOrDefault(f =>
+				Path.GetRelativePath(BaseAudioPath, f) == $"{filename}.{AudioExt}");
+			
+			if (path == null)
 			{
 				// file not found
 				await ReplyAsync("This isn't the file you are looking for");
 				return;
 			}
 
+			var audioInfo = await _voice.JoinChannel(Context);
+			var audioStream = audioInfo.AudioStream;
+
 			Sp.WaitOne();
 			try
 			{
 				await using var fileStream = File.Open(path, FileMode.Open);
 				await fileStream.CopyToAsync(audioStream);
-				await audioStream.FlushAsync();
 			}
 			finally
 			{

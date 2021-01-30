@@ -5,7 +5,7 @@ using PuroBot.Services;
 
 namespace PuroBot.Modules
 {
-	[Group("sound")]
+	[Group("voice")]
 	[Summary("voice chat-related commands")]
 	public class VoiceModule : ModuleBase<SocketCommandContext>
 	{

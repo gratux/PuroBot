@@ -29,6 +29,7 @@ namespace PuroBot
 		private static async Task MainAsync(string token)
 		{
 			var client = new DiscordSocketClient();
+			client.Ready += () => EventHandlers.ClientReadyHandler(client);
 			var commands = new CommandService(new CommandServiceConfig
 			{
 				CaseSensitiveCommands = false,
@@ -37,9 +38,9 @@ namespace PuroBot
 				LogLevel = LogSeverity.Warning
 			});
 			commands.CommandExecuted += EventHandlers.CmdExecutedHandler;
-			
+
 			_loggingService = new LoggingService(client, commands);
-			
+
 			_commandHandler = new CommandHandler(client, commands,
 				new Initialize(commands, client).BuildServiceProvider());
 
