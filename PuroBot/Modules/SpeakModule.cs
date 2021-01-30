@@ -29,7 +29,7 @@ namespace PuroBot.Modules
 		public async Task SpeakCommand([Summary("the filename")] string filename)
 		{
 			var audioInfo = await _voice.JoinChannel(Context);
-			await using var audioStream = audioInfo.AudioClient.CreatePCMStream(AudioApplication.Voice);
+			var audioStream = audioInfo.AudioStream;
 			
 			string path;
 			try
@@ -52,7 +52,6 @@ namespace PuroBot.Modules
 				await using var fileStream = File.Open(path, FileMode.Open);
 				await fileStream.CopyToAsync(audioStream);
 				await audioStream.FlushAsync();
-				await audioStream.DisposeAsync();
 			}
 			finally
 			{

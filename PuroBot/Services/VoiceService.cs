@@ -12,18 +12,23 @@ namespace PuroBot.Services
 {
 	public class VoiceService
 	{
-		public class VoiceInfo
+		public class VoiceInfo : IDisposable
 		{
-			public VoiceInfo(IAudioClient audioClient, IVoiceChannel voiceChannel)
+			public VoiceInfo(AudioOutStream audioStream, IVoiceChannel voiceChannel)
 			{
-				AudioClient = audioClient;
+				AudioStream = audioStream;
 				VoiceChannel = voiceChannel;
 			}
 
-			public IAudioClient AudioClient { get; }
+			public AudioOutStream AudioStream { get; }
 			public IVoiceChannel VoiceChannel { get; }
+
+			public void Dispose()
+			{
+				AudioStream?.Dispose();
+			}
 		}
-		private class ConnectionInfo
+		private class ConnectionInfo : IDisposable
 		{
 			public ConnectionInfo(ulong guildId, VoiceInfo voiceInfo)
 			{
@@ -41,9 +46,15 @@ namespace PuroBot.Services
 				get => _voiceInfo;
 				set
 				{
+					_voiceInfo?.Dispose();
 					_voiceInfo = value;
 					LastUsed = DateTime.UtcNow;
 				}
+			}
+
+			public void Dispose()
+			{
+				_voiceInfo?.Dispose();
 			}
 		}
 
@@ -71,8 +82,9 @@ namespace PuroBot.Services
 			var voiceInfo = GetInfo(context.Guild.Id);
 			if (voiceInfo?.VoiceChannel == channel)
 				return voiceInfo;
-			
-			voiceInfo = new VoiceInfo(await channel.ConnectAsync(), channel);
+
+			var audioStream = (await channel.ConnectAsync()).CreatePCMStream(AudioApplication.Voice);
+			voiceInfo = new VoiceInfo(audioStream, channel);
 			AddOrUpdate(context.Guild.Id, voiceInfo);
 			return voiceInfo;
 		}
@@ -106,6 +118,11 @@ namespace PuroBot.Services
 		{
 			lock (_activeConnections)
 			{
+				foreach (var info in _activeConnections.Where(i => i.GuildId == guildId))
+				{
+					info.Dispose();
+				}
+
 				_activeConnections.RemoveAll(i => i.GuildId == guildId);
 			}
 		}
