@@ -1,14 +1,13 @@
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Threading.Tasks;
-using DSharpPlus.CommandsNext;
-using DSharpPlus.CommandsNext.Attributes;
+using Discord.Commands;
 using ImageMagick;
 
-namespace PuroBot.Commands
+namespace PuroBot.Modules
 {
 	[SuppressMessage("ReSharper", "UnusedMember.Global")]
-	internal class ReactionCommands : BaseCommandModule
+	public class ReactionModule : ModuleBase<SocketCommandContext>
 	{
 		private const string PlateBg = "Resources/JaySayPics/JaySayPlate_Background.png",
 			PlateFingers = "Resources/JaySayPics/JaySayPlate_Fingers.png",
@@ -25,24 +24,24 @@ namespace PuroBot.Commands
 		};
 
 		[Command("jaysay")]
-		[Description("pay Jay-R to write a message for you")]
-		public async Task JaySayCommand(CommandContext ctx, [RemainingText] [Description("the message to be written")]
+		[Summary("pay Jay-R to write a message for you")]
+		public async Task JaySayCommand([Remainder] [Summary("the message to be written")]
 			string message)
 		{
 			try
 			{
-				await ctx.RespondWithFileAsync(WritingBg);
+				await Context.Channel.SendFileAsync(WritingBg);
 				using var bg = new MagickImage(new FileInfo(PlateBg));
 				using var fingers = new MagickImage(new FileInfo(PlateFingers));
 				using var text = new MagickImage($"caption:{message}", TextOptions);
 				text.Rotate(-6.05d);
 				bg.Composite(text, 220, 650, CompositeOperator.Over);
 				bg.Composite(fingers, CompositeOperator.Over);
-				await ctx.RespondWithFileAsync($"JaySays_{message}.png", new MemoryStream(bg.ToByteArray()));
+				await Context.Channel.SendFileAsync(new MemoryStream(bg.ToByteArray()), $"JaySays_{message}.png");
 			}
 			catch
 			{
-				await ctx.RespondAsync("Uh Oh! Something went wrong. Please tell my owner I did a boo-boo. ;w;");
+				await ReplyAsync("Uh Oh! Something went wrong. Please tell my owner I did a boo-boo. ;w;");
 			}
 		}
 	}

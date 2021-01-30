@@ -1,15 +1,16 @@
 using System;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using DSharpPlus.CommandsNext;
-using DSharpPlus.CommandsNext.Attributes;
+using Discord;
+using Discord.Commands;
 
-namespace PuroBot.Commands
+namespace PuroBot.Modules
 {
 	[SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Local")]
 	[SuppressMessage("ReSharper", "UnusedMember.Local")]
-	internal class UwuCommands : BaseCommandModule
+	public class UwuModule : ModuleBase<SocketCommandContext>
 	{
 		private static readonly string[] Kaomoji =
 		{
@@ -45,38 +46,27 @@ namespace PuroBot.Commands
 			return msg;
 		}
 
-		// str = str.replace(/(?:l|r)/g, 'w');
-		// str = str.replace(/(?:L|R)/g, 'W');
-		// str = str.replace(/n([aeiou])/g, 'ny$1');
-		// str = str.replace(/N([aeiou])|N([AEIOU])/g, 'Ny$1');
-		// str = str.replace(/ove/g, 'uv');
-		// str = str.replace(/nd(?= |$)/g, 'ndo');
-		// str = str.replace(
-		// /!+/g,
-		// ` ${kaomoji[Math.floor(Math.random() * kaomoji.length)]}`
-		// );
-
-		private static async Task<bool> CheckMsgEmpty(CommandContext ctx, string msg)
+		private static async Task<bool> CheckMsgEmpty(ICommandContext ctx, string msg)
 		{
 			if (!string.IsNullOrWhiteSpace(msg)) return false;
-			await ctx.RespondAsync("Silly Human, your message is empty. I can't translate nothing...");
+			await ctx.Message.ReplyAsync("Silly Human, your message is empty. I can't translate nothing...");
 			return true;
 		}
 
 		#region uwuify
 
 		[Command("uwufy")]
-		[Aliases("uwu")]
+		[Alias("uwu")]
 		[Description("translate a message to uwu-speak")]
-		private async Task UwuCommand(CommandContext ctx,
-			[RemainingText] [Description("the message i should translate")]
+		public async Task UwuCommand(
+			[Remainder] [Description("the message i should translate")]
 			string message)
 		{
-			if (await CheckMsgEmpty(ctx, message))
+			if (await CheckMsgEmpty(Context, message))
 				return;
 
 			var translated = UwuTranslate(message);
-			await ctx.RespondAsync($"I translated your message, human:\n> {translated}");
+			await ReplyAsync($"I translated your message, human:\n> {translated}");
 		}
 
 		#endregion
@@ -84,17 +74,17 @@ namespace PuroBot.Commands
 		#region uwuifythis
 
 		[Command("uwufythis")]
-		[Aliases("uwuthis")]
+		[Alias("uwuthis")]
 		[Description("translates the mentioned message to uwu-speak")]
-		private async Task UwuThisCommand(CommandContext ctx)
+		public async Task UwuThisCommand()
 		{
 			// this returns null, if the message was written before the bot was online. why?!
-			var mentioned = ctx.Message.Reference?.Message.Content;
-			if (await CheckMsgEmpty(ctx, mentioned))
+			var mentioned = Context.Message.ReferencedMessage.Content;
+			if (await CheckMsgEmpty(Context, mentioned))
 				return;
 
 			var translated = UwuTranslate(mentioned);
-			await ctx.RespondAsync($"I translated your message:\n> {translated}");
+			await ReplyAsync($"I translated your message:\n> {translated}");
 		}
 
 		#endregion

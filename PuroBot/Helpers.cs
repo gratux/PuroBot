@@ -3,32 +3,20 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
-using DSharpPlus.Entities;
+using Discord;
 
 namespace PuroBot
 {
 	public static class Helpers
 	{
-		private static readonly Semaphore Semaphore = new Semaphore(1, 1);
-
-		public static async Task SendMany(List<string> messages, Func<string, Task<DiscordMessage>> sendMsgFunc)
+		public static async Task SendMany(List<string> messages, Func<string, Task<IUserMessage>> sendMsgFunc)
 		{
-			Semaphore.WaitOne();
 			var msgChunks = SplitList(messages);
-			try
+			foreach (var chunk in msgChunks)
 			{
-				foreach (var chunk in msgChunks)
-				{
-					var msg = string.Join('\n', chunk);
-					await sendMsgFunc.Invoke(msg);
-					//TODO: rate limit
-				}
-			}
-			finally
-			{
-				Semaphore.Release();
+				var msg = string.Join('\n', chunk);
+				await sendMsgFunc.Invoke(msg);
 			}
 		}
 
@@ -36,11 +24,6 @@ namespace PuroBot
 		{
 			for (var i = 0; i < list.Count; i += size) yield return list.GetRange(i, Math.Min(size, list.Count - i));
 		}
-
-		// public static bool StartsWithAny(this string s, params char[] c)
-		// {
-		// 	return c.Any(s.StartsWith);
-		// }
 
 		public static bool StartsWithAny(this string s, IEnumerable<string> c)
 		{

@@ -1,16 +1,17 @@
 ﻿using System.IO;
 using System.Threading.Tasks;
-using DSharpPlus;
-using DSharpPlus.CommandsNext;
-using DSharpPlus.VoiceNext;
-using PuroBot.Commands;
-using PuroBot.Events;
+using Discord;
+using Discord.Commands;
+using Discord.WebSocket;
+using PuroBot.Handlers;
+using PuroBot.Services;
 
 namespace PuroBot
 {
 	internal static class Program
 	{
-		public static SoundTimeoutManager SoundTimeoutManager;
+		private static CommandHandler _commandHandler;
+		private static LoggingService _loggingService;
 
 		private static void Main(string[] args)
 		{
@@ -27,33 +28,26 @@ namespace PuroBot
 
 		private static async Task MainAsync(string token)
 		{
-			var discord = new DiscordClient(new DiscordConfiguration
+			var client = new DiscordSocketClient();
+			var commands = new CommandService(new CommandServiceConfig
 			{
-				Token = token,
-				TokenType = TokenType.Bot,
-				Intents = DiscordIntents.AllUnprivileged
-				          | DiscordIntents.GuildMembers
+				CaseSensitiveCommands = false,
+				DefaultRunMode = RunMode.Async,
+				IgnoreExtraArgs = true,
+				LogLevel = LogSeverity.Warning
 			});
+			commands.CommandExecuted += EventHandlers.CmdExecutedHandler;
+			
+			_loggingService = new LoggingService(client, commands);
+			
+			_commandHandler = new CommandHandler(client, commands,
+				new Initialize(commands, client).BuildServiceProvider());
 
-			SoundTimeoutManager = new SoundTimeoutManager(discord);
+			await _commandHandler.InstallCommandsAsync();
 
-			discord.UseVoiceNext();
+			await client.LoginAsync(TokenType.Bot, token);
+			await client.StartAsync();
 
-			var commands = discord.UseCommandsNext(new CommandsNextConfiguration
-			{
-				StringPrefixes = new[] {"~"}
-			});
-
-			commands.RegisterCommands<BasicCommands>();
-			commands.RegisterCommands<UwuCommands>();
-			commands.RegisterCommands<ImageCommands>();
-			commands.RegisterCommands<ReactionCommands>();
-			commands.RegisterCommands<SoundCommands>();
-			commands.RegisterCommands<SpeakCommands>();
-
-			commands.CommandErrored += async (ext, args) => await EventHandlers.CmdErroredHandler(ext, args);
-
-			await discord.ConnectAsync();
 			await Task.Delay(-1);
 		}
 	}
