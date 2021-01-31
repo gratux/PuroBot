@@ -23,7 +23,6 @@ namespace PuroBot.Handlers
 			.AddSingleton(_client)
 			.AddSingleton(_commands)
 			.AddSingleton<CommandHandler>()
-			.AddSingleton<LoggingService>()
 			.AddSingleton<VoiceService>()
 			.BuildServiceProvider();
 	}

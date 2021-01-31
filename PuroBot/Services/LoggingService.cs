@@ -7,9 +7,9 @@ using Discord.Rest;
 
 namespace PuroBot.Services
 {
-	public class LoggingService
+	public static class LoggingService
 	{
-		public LoggingService(BaseDiscordClient client, CommandService command)
+		public static void Init(BaseDiscordClient client, CommandService command)
 		{
 			client.Log += LogAsync;
 			command.Log += LogAsync;

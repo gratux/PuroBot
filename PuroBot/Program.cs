@@ -11,9 +11,8 @@ namespace PuroBot
 	internal static class Program
 	{
 		private static CommandHandler _commandHandler;
-		private static LoggingService _loggingService;
 
-		private static void Main(string[] args)
+		private static void Main()
 		{
 			// if (args?.Length == 0)
 			// {
@@ -39,7 +38,7 @@ namespace PuroBot
 			});
 			commands.CommandExecuted += EventHandlers.CmdExecutedHandler;
 
-			_loggingService = new LoggingService(client, commands);
+			LoggingService.Init(client, commands);
 
 			_commandHandler = new CommandHandler(client, commands,
 				new Initialize(commands, client).BuildServiceProvider());

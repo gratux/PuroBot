@@ -6,11 +6,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 
-namespace PuroBot
+namespace PuroBot.Extensions
 {
-	public static class Helpers
+	public static class Generic
 	{
-		public static async Task SendMany(List<string> messages, Func<string, Task<IUserMessage>> sendMsgFunc)
+		public static async Task SendMany(this List<string> messages, Func<string, Task<IUserMessage>> sendMsgFunc)
 		{
 			var msgChunks = SplitList(messages);
 			foreach (var chunk in msgChunks)
@@ -25,25 +25,6 @@ namespace PuroBot
 			for (var i = 0; i < list.Count; i += size) yield return list.GetRange(i, Math.Min(size, list.Count - i));
 		}
 
-		public static bool StartsWithAny(this string s, IEnumerable<string> c)
-		{
-			return StartsWithAny(s, c, out _);
-		}
-
-		public static bool StartsWithAny(this string s, IEnumerable<string> c, out bool endsAfterStart)
-		{
-			foreach (var start in c)
-			{
-				if (!s.StartsWith(start)) continue;
-
-				endsAfterStart = s.Length <= start.Length;
-				return true;
-			}
-
-			endsAfterStart = false;
-			return false;
-		}
-
 		public static IEnumerable<string> GetFileTree(this DirectoryInfo d, string fileSearchPattern = "",
 			bool ignoreEmptyDirs = true, bool includeExtensions = false)
 		{
@@ -55,17 +36,17 @@ namespace PuroBot
 			if (subDirs.Length == 0 && files.Length == 0 && ignoreEmptyDirs) yield return "";
 
 			yield return d.Name;
-
+			
 			foreach (var subDir in subDirs)
 			{
+				// ReSharper disable PossibleMultipleEnumeration
 				var subTree = subDir.GetFileTree(fileSearchPattern, ignoreEmptyDirs);
 				for (var i = 0; i < subTree.Count(); i++)
 					if (i == 0)
 						yield return "├ " + subTree.ElementAt(i);
-					// else if (i == subTree.Count() - 1)
-					// 	yield return " " + subTree.ElementAt(i);
 					else
 						yield return "| " + subTree.ElementAt(i);
+				// ReSharper restore PossibleMultipleEnumeration
 			}
 
 			for (var i = 0; i < files.Length; i++)
@@ -74,6 +55,15 @@ namespace PuroBot
 				var symbol = i == files.Length - 1 ? "└ " : "├ ";
 				yield return symbol + filename;
 			}
+		}
+
+		public static string IncludeIfAny(this IReadOnlyList<string> items, string header,
+			Func<string, string> itemFormatter, string separator, bool startInNewLine = false)
+		{
+			if (items.Any())
+				return $"{header.AsHeader()}: " + (startInNewLine ? "\n" : null) +
+				       string.Join(separator, items.Select(itemFormatter.Invoke)) + "\n";
+			return null;
 		}
 	}
 }

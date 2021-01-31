@@ -1,10 +1,9 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using PuroBot.Extensions;
 
 namespace PuroBot.Modules
 {
@@ -25,7 +24,7 @@ namespace PuroBot.Modules
 
 			const string prefix = "~";
 
-			builder.AddField("Generic Info", $"__Bot Prefix__: `{prefix}` or bot mention");
+			builder.AddField("Generic Info", "Bot Prefix".AsHeader() + $": {prefix.AsCode()} or bot mention");
 
 			var allCommands = _command.Modules.SelectMany(m => m.Commands).ToArray();
 			Array.Sort(allCommands,
@@ -33,13 +32,13 @@ namespace PuroBot.Modules
 
 			foreach (var command in allCommands)
 			{
-				builder.AddField($"`{prefix}{command.Aliases.First()}`", await CommandHelp(command));
+				builder.AddField($"{prefix}{command.Aliases.First()}".AsCode(), await CommandHelp(command));
 			}
 
 			await ReplyAsync(embed: builder.Build());
 		}
 
-		private static async Task<string> CommandHelp(CommandInfo command)
+		private static Task<string> CommandHelp(CommandInfo command)
 		{
 			var name = command.Aliases.First();
 			var summary = command.Summary ?? "No summary";
@@ -47,23 +46,17 @@ namespace PuroBot.Modules
 			var parameterInfos = command.Parameters;
 			var parameterDesc =
 				parameterInfos.Select(p =>
-						$"{(p.IsOptional ? "[*Optional*] " : "")}`{p.Name}` `<{p.Type}>`: *{p.Summary ?? "No description"}*")
+						$"{(p.IsOptional ? "[Optional] " : null)}{p.Name.AsCode()} {("<" + p.Type + ">").AsCode()}: {(p.Summary ?? "No description").AsItalic()}")
 					.ToArray();
 			var preconditions = command.Preconditions.Select(p => p.GetType().Name).ToArray();
 
-			var commandHelp = $"*{summary}*\n"
-			                  + $"__Command__: `{name}`\n"
-			                  + "__Aliases__: " + (aliases.Any()
-				                  ? $"`{string.Join("`, `", aliases)}`"
-				                  : "*none*") + "\n"
-			                  + "__Parameters__:\n• " + (parameterDesc.Any()
-				                  ? string.Join("\n• ", parameterDesc)
-				                  : "*none*") + "\n"
-			                  + "__Preconditions__:\n• " + (preconditions.Any()
-				                  ? string.Join("\n• ", preconditions)
-				                  : "*none*");
+			var commandHelp = $"{summary.AsItalic()}\n"
+			                  + "Command".AsHeader() + $": {name.AsCode()}\n"
+			                  + aliases.IncludeIfAny("Aliases".AsHeader(), i => i.AsCode(), ", ")
+			                  + parameterDesc.IncludeIfAny("Parameters".AsHeader(), i => i.AsListItem(), "\n", true)
+			                  + preconditions.IncludeIfAny("Preconditions".AsHeader(), i => i.AsListItem(), "\n", true);
 
-			return commandHelp;
+			return Task.FromResult(commandHelp);
 		}
 	}
 }

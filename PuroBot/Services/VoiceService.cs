@@ -28,6 +28,7 @@ namespace PuroBot.Services
 				AudioStream?.Dispose();
 			}
 		}
+
 		private class ConnectionInfo : IDisposable
 		{
 			public ConnectionInfo(ulong guildId, VoiceInfo voiceInfo)
@@ -66,11 +67,11 @@ namespace PuroBot.Services
 			var checkTimeoutThread = new Thread(CheckTimeout) {IsBackground = true};
 			checkTimeoutThread.Start();
 		}
-		
+
 		public async Task<VoiceInfo> JoinChannel(ICommandContext context, IVoiceChannel channel = null)
 		{
 			channel ??= (context.User as IGuildUser)?.VoiceChannel;
-			
+
 			if (channel == null)
 			{
 				await context.Channel.SendMessageAsync(
@@ -89,10 +90,11 @@ namespace PuroBot.Services
 			return voiceInfo;
 		}
 
-		public async Task LeaveChannel(ICommandContext context)
+		public Task LeaveChannel(ICommandContext context)
 		{
 			GetInfo(context.Guild.Id)?.VoiceChannel.DisconnectAsync();
 			Remove(context.Guild.Id);
+			return Task.CompletedTask;
 		}
 
 		private void AddOrUpdate(ulong guildId, VoiceInfo channel)

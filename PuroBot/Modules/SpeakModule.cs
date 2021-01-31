@@ -1,10 +1,10 @@
-using System;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using PuroBot.Extensions;
 using PuroBot.Services;
 
 namespace PuroBot.Modules

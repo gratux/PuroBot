@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord.Commands;
+using PuroBot.Extensions;
 
 namespace PuroBot.Modules
 {
@@ -21,7 +22,7 @@ namespace PuroBot.Modules
 			var e621 = new E621Client();
 			var posts = e621.GetPostUrls(tags, count).Result;
 			await ReplyAsync("Here you go, human:");
-			await Helpers.SendMany(posts, msg => ReplyAsync(msg));
+			await posts.SendMany(msg => ReplyAsync(msg));
 		}
 
 		[Command("selfie")]
