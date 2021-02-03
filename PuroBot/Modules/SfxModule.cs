@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -10,24 +9,24 @@ using PuroBot.Services;
 
 namespace PuroBot.Modules
 {
-	[Group("speak")]
+	[Group("sfx")]
 	[Summary("play a sound file")]
 	[RequireUserPermission(GuildPermission.Administrator)]
-	public class SpeakModule : ModuleBase<SocketCommandContext>
+	public class SfxModule : ModuleBase<SocketCommandContext>
 	{
 		private readonly VoiceService _voice;
 
 		private const string BaseAudioPath = "Resources/SpeakAudio/";
 		private const string AudioExt = "pcm";
-		private static readonly Semaphore Sp = new Semaphore(1, 1);
+		private static readonly SemaphoreSlim Sp = new SemaphoreSlim(1);
 
-		public SpeakModule(VoiceService voice)
+		public SfxModule(VoiceService voice)
 		{
 			_voice = voice;
 		}
 
 		[Command]
-		[Summary("play a voice line")]
+		[Summary("play a sound effect")]
 		[Priority(0)]
 		public async Task SpeakCommand([Summary("the filename")] string filename)
 		{
@@ -35,7 +34,7 @@ namespace PuroBot.Modules
 
 			var path = files.FirstOrDefault(f =>
 				Path.GetRelativePath(BaseAudioPath, f) == $"{filename}.{AudioExt}");
-			
+
 			if (path == null)
 			{
 				// file not found
@@ -43,12 +42,12 @@ namespace PuroBot.Modules
 				return;
 			}
 
-			var audioInfo = await _voice.JoinChannel(Context);
-			var audioStream = audioInfo.AudioStream;
-
-			Sp.WaitOne();
+			await Sp.WaitAsync();
 			try
 			{
+				var audioInfo = await _voice.JoinChannel(Context);
+				var audioStream = audioInfo.AudioStream;
+
 				//using var ffmpeg = CreateStream(path);
 				//await using var audioData = ffmpeg.StandardOutput.BaseStream;
 				
@@ -70,7 +69,7 @@ namespace PuroBot.Modules
 				.Skip(1); // skip name of resource directory
 			await ReplyAsync($"Available files are:```\n{string.Join('\n', files)}\n```");
 		}
-		
+
 		// private Process CreateStream(string path)
 		// {
 		// 	return Process.Start(new ProcessStartInfo

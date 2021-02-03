@@ -37,6 +37,11 @@ namespace PuroBot.Services
 				VoiceInfo = voiceInfo;
 			}
 
+			public void UpdateTime()
+			{
+				LastUsed = DateTime.UtcNow;
+			}
+
 			public ulong GuildId { get; }
 			public DateTime LastUsed { get; private set; }
 
@@ -49,7 +54,7 @@ namespace PuroBot.Services
 				{
 					_voiceInfo?.Dispose();
 					_voiceInfo = value;
-					LastUsed = DateTime.UtcNow;
+					UpdateTime();
 				}
 			}
 
@@ -70,8 +75,10 @@ namespace PuroBot.Services
 
 		public async Task<VoiceInfo> JoinChannel(ICommandContext context, IVoiceChannel channel = null)
 		{
+			// no special channel requested, use channel of calling user 
 			channel ??= (context.User as IGuildUser)?.VoiceChannel;
 
+			// user not in any channel and no channel specified
 			if (channel == null)
 			{
 				await context.Channel.SendMessageAsync(
@@ -79,14 +86,22 @@ namespace PuroBot.Services
 				return null;
 			}
 
-			//don't rejoin same channel
+			// look for entries for current server
 			var voiceInfo = GetInfo(context.Guild.Id);
-			if (voiceInfo?.VoiceChannel == channel)
-				return voiceInfo;
+			// server not in list or different channel requested
+			if (voiceInfo == null || voiceInfo.VoiceChannel != channel)
+			{
+				var audioStream =
+					(await channel.ConnectAsync()).CreatePCMStream(AudioApplication.Mixed, bufferMillis: 200);
+				voiceInfo = new VoiceInfo(audioStream, channel);
+				Add(context.Guild.Id, voiceInfo);
+			}
+			// already connected -> only update time
+			else
+			{
+				Update(context.Guild.Id, voiceInfo);
+			}
 
-			var audioStream = (await channel.ConnectAsync()).CreatePCMStream(AudioApplication.Mixed, bufferMillis: 200);
-			voiceInfo = new VoiceInfo(audioStream, channel);
-			AddOrUpdate(context.Guild.Id, voiceInfo);
 			return voiceInfo;
 		}
 
@@ -97,14 +112,26 @@ namespace PuroBot.Services
 			return Task.CompletedTask;
 		}
 
-		private void AddOrUpdate(ulong guildId, VoiceInfo channel)
+		private void Add(ulong guildId, VoiceInfo channel)
 		{
 			lock (_activeConnections)
 			{
-				if (_activeConnections.All(i => i.GuildId != guildId))
-					_activeConnections.Add(new ConnectionInfo(guildId, channel));
+				_activeConnections.Add(new ConnectionInfo(guildId, channel));
+			}
+		}
+
+		private void Update(ulong guildId, VoiceInfo channel)
+		{
+			lock (_activeConnections)
+			{
+				var connection = _activeConnections.First(i => i.GuildId == guildId);
+
+				// different channel -> reconnect to new channel
+				if (connection.VoiceInfo != channel)
+					connection.VoiceInfo = channel;
+				// same channel -> update last used
 				else
-					_activeConnections.First(i => i.GuildId == guildId).VoiceInfo = channel;
+					connection.UpdateTime();
 			}
 		}
 
