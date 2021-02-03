@@ -14,20 +14,16 @@ namespace PuroBot
 
 		private static void Main()
 		{
-			// if (args?.Length == 0)
-			// {
-			// 	Console.WriteLine("Please provide the bot token as an argument");
-			// 	return;
-			// }
-			//
-			// var token = args?[0];
-			var token = File.ReadAllText("botkey.txt").Trim();
+			var token = File.ReadAllText("botToken.txt").Trim();
 			MainAsync(token).GetAwaiter().GetResult();
 		}
 
 		private static async Task MainAsync(string token)
 		{
-			var client = new DiscordSocketClient();
+			var client = new DiscordSocketClient(new DiscordSocketConfig
+			{
+				ExclusiveBulkDelete = true
+			});
 			client.Ready += () => EventHandlers.ClientReadyHandler(client);
 			var commands = new CommandService(new CommandServiceConfig
 			{

@@ -3,24 +3,12 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
-using Discord;
 
 namespace PuroBot.Extensions
 {
 	public static class Generic
 	{
-		public static async Task SendMany(this List<string> messages, Func<string, Task<IUserMessage>> sendMsgFunc)
-		{
-			var msgChunks = SplitList(messages);
-			foreach (var chunk in msgChunks)
-			{
-				var msg = string.Join('\n', chunk);
-				await sendMsgFunc.Invoke(msg);
-			}
-		}
-
-		private static IEnumerable<List<T>> SplitList<T>(List<T> list, int size = 5)
+		public static IEnumerable<List<T>> Partition<T>(this List<T> list, int size = 5)
 		{
 			for (var i = 0; i < list.Count; i += size) yield return list.GetRange(i, Math.Min(size, list.Count - i));
 		}

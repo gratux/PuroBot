@@ -84,7 +84,7 @@ namespace PuroBot.Services
 			if (voiceInfo?.VoiceChannel == channel)
 				return voiceInfo;
 
-			var audioStream = (await channel.ConnectAsync()).CreatePCMStream(AudioApplication.Voice);
+			var audioStream = (await channel.ConnectAsync()).CreatePCMStream(AudioApplication.Mixed, bufferMillis: 200);
 			voiceInfo = new VoiceInfo(audioStream, channel);
 			AddOrUpdate(context.Guild.Id, voiceInfo);
 			return voiceInfo;

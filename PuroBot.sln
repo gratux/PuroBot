@@ -2,8 +2,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PuroBot", "PuroBot\PuroBot.csproj", "{99D4A185-4D23-4BF8-8EA3-278656A1ABE0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpeechSynth", "SpeechSynth\SpeechSynth.csproj", "{BE3672BE-A225-492E-8D39-32E83C0481DA}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -14,9 +12,4 @@ Global
 		{99D4A185-4D23-4BF8-8EA3-278656A1ABE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{99D4A185-4D23-4BF8-8EA3-278656A1ABE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{99D4A185-4D23-4BF8-8EA3-278656A1ABE0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BE3672BE-A225-492E-8D39-32E83C0481DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BE3672BE-A225-492E-8D39-32E83C0481DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BE3672BE-A225-492E-8D39-32E83C0481DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BE3672BE-A225-492E-8D39-32E83C0481DA}.Release|Any CPU.Build.0 = Release|Any CPU
-	EndGlobalSection
 EndGlobal

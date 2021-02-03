@@ -28,7 +28,7 @@ namespace PuroBot.Modules
 
 			var allCommands = _command.Modules.SelectMany(m => m.Commands).ToArray();
 			Array.Sort(allCommands,
-				(a, b) => StringComparer.InvariantCulture.Compare(a.Aliases.First(), b.Aliases.First()));
+				(x, y) => StringComparer.InvariantCulture.Compare(x.Aliases.First(), y.Aliases.First()));
 
 			foreach (var command in allCommands)
 			{
@@ -46,10 +46,12 @@ namespace PuroBot.Modules
 			var parameterInfos = command.Parameters;
 			var parameterDesc =
 				parameterInfos.Select(p =>
-						$"{(p.IsOptional ? "[Optional] " : null)}{p.Name.AsCode()} {("<" + p.Type + ">").AsCode()}: {(p.Summary ?? "No description").AsItalic()}")
+						$"{(p.IsOptional ? "[Optional] " : null)}" +
+						$"{p.Name.AsCode()} {("<" + p.Type + ">").AsCode()}" +
+						$"{(p.Summary != null ? ": " + p.Summary.AsItalic() : null)}")
 					.ToArray();
-			var preconditions = command.Preconditions.Select(p => p.GetType().Name).ToArray();
-
+			var preconditions = command.Preconditions.Concat(command.Module.Preconditions).Select(p => p.Decode()).Distinct().ToArray();
+			
 			var commandHelp = $"{summary.AsItalic()}\n"
 			                  + "Command".AsHeader() + $": {name.AsCode()}\n"
 			                  + aliases.IncludeIfAny("Aliases".AsHeader(), i => i.AsCode(), ", ")
