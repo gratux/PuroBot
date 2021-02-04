@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 
-namespace PuroBot.Modules
+namespace PuroBot.CommandModules
 {
 	[Summary("commands for server administration")]
 	[RequireUserPermission(GuildPermission.Administrator)]

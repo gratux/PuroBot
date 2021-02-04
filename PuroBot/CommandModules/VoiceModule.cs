@@ -3,7 +3,7 @@ using Discord;
 using Discord.Commands;
 using PuroBot.Services;
 
-namespace PuroBot.Modules
+namespace PuroBot.CommandModules
 {
 	[Group("voice")]
 	[Summary("voice chat-related commands")]

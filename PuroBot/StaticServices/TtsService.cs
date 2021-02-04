@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 
-namespace PuroBot.Services
+namespace PuroBot.StaticServices
 {
 	public static class TtsService
 	{

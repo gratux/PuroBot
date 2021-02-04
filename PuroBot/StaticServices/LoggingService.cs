@@ -5,7 +5,7 @@ using Discord;
 using Discord.Commands;
 using Discord.Rest;
 
-namespace PuroBot.Services
+namespace PuroBot.StaticServices
 {
 	public static class LoggingService
 	{

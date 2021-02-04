@@ -1,22 +1,20 @@
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord.Commands;
 using PuroBot.Extensions;
 
-namespace PuroBot.Modules
+namespace PuroBot.CommandModules
 {
-	[SuppressMessage("ReSharper", "UnusedMember.Local")]
 	public class ImageModule : ModuleBase<SocketCommandContext>
 	{
 		[Command("e621")]
 		[Description("get posts from e621.net")]
 		[RequireNsfw]
 		public async Task E621Command(
-			[Description("the number of posts to request")]
+			[Description("the number of posts to request (default: 5)")]
 			int count = 5,
-			[Remainder] [Description("the tags to be searched")]
+			[Remainder] [Description("the tags to be searched (default: none)")]
 			string tags = "")
 		{
 			var e621 = new E621Client();

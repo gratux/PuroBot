@@ -26,6 +26,7 @@ namespace PuroBot.Handlers
 			.AddSingleton<VoiceService>()
 			.BuildServiceProvider();
 	}
+	
 	public class CommandHandler
 	{
 		private readonly IServiceProvider _services;

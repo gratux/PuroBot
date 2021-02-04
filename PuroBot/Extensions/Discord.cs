@@ -18,9 +18,9 @@ namespace PuroBot.Extensions
 			}
 		}
 
-		public static string Decode(this PreconditionAttribute precon)
+		public static string Decode(this PreconditionAttribute precondition)
 		{
-			switch (precon)
+			switch (precondition)
 			{
 				case RequireNsfwAttribute _:
 					return "NSFW channel";
@@ -33,7 +33,7 @@ namespace PuroBot.Extensions
 						: null);
 					return decode;
 				default:
-					return precon.GetType().Name;
+					return precondition.GetType().Name;
 			}
 		}
 	}
