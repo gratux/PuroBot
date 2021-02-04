@@ -7,7 +7,7 @@ using Discord.Commands;
 using PuroBot.Extensions;
 using PuroBot.Services;
 
-namespace PuroBot.Modules
+namespace PuroBot.CommandModules
 {
 	[Group("sfx")]
 	[Summary("play a sound file")]
@@ -69,16 +69,5 @@ namespace PuroBot.Modules
 				.Skip(1); // skip name of resource directory
 			await ReplyAsync($"Available files are:```\n{string.Join('\n', files)}\n```");
 		}
-
-		// private Process CreateStream(string path)
-		// {
-		// 	return Process.Start(new ProcessStartInfo
-		// 	{
-		// 		FileName = "ffmpeg",
-		// 		Arguments = $"-hide_banner -loglevel panic -i \"{path}\" -af apad -ac 2 -f s16le -ar 48000 pipe:1",
-		// 		UseShellExecute = false,
-		// 		RedirectStandardOutput = true,
-		// 	});
-		// }
 	}
 }

@@ -5,7 +5,7 @@ using Discord;
 using Discord.Commands;
 using PuroBot.Extensions;
 
-namespace PuroBot.Modules
+namespace PuroBot.CommandModules
 {
 	public class HelpModule : ModuleBase<SocketCommandContext>
 	{

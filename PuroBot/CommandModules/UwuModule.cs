@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 
-namespace PuroBot.Modules
+namespace PuroBot.CommandModules
 {
 	[SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Local")]
 	[SuppressMessage("ReSharper", "UnusedMember.Local")]

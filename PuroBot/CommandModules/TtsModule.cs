@@ -2,8 +2,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Discord.Commands;
 using PuroBot.Services;
+using PuroBot.StaticServices;
 
-namespace PuroBot.Modules
+namespace PuroBot.CommandModules
 {
 	public class TtsModule : ModuleBase<SocketCommandContext>
 	{

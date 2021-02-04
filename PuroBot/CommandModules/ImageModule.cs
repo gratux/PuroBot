@@ -1,13 +1,11 @@
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord.Commands;
 using PuroBot.Extensions;
 
-namespace PuroBot.Modules
+namespace PuroBot.CommandModules
 {
-	[SuppressMessage("ReSharper", "UnusedMember.Local")]
 	public class ImageModule : ModuleBase<SocketCommandContext>
 	{
 		[Command("e621")]

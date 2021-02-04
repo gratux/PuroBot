@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Discord.Commands;
 using ImageMagick;
 
-namespace PuroBot.Modules
+namespace PuroBot.CommandModules
 {
 	[SuppressMessage("ReSharper", "UnusedMember.Global")]
 	public class ReactionModule : ModuleBase<SocketCommandContext>
