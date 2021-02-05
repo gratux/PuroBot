@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 using Discord;
 using Discord.Audio;
 using Discord.Commands;
@@ -12,6 +11,9 @@ namespace PuroBot.Services
 {
 	public class VoiceService
 	{
+		private static readonly TimeSpan Timeout = new TimeSpan(0, 5, 0);
+		private readonly List<ConnectionInfo> _activeConnections = new List<ConnectionInfo>();
+		
 		public class VoiceInfo : IDisposable
 		{
 			public VoiceInfo(AudioOutStream audioStream, IVoiceChannel voiceChannel)
@@ -25,21 +27,43 @@ namespace PuroBot.Services
 
 			public void Dispose()
 			{
+				VoiceChannel?.DisconnectAsync();
 				AudioStream?.Dispose();
 			}
 		}
 
 		private class ConnectionInfo : IDisposable
 		{
-			public ConnectionInfo(ulong guildId, VoiceInfo voiceInfo)
+			private Timer _timeoutTimer;
+			private readonly Action _timeoutAction;
+
+			public ConnectionInfo(ulong guildId, VoiceInfo voiceInfo, Action timeoutAction)
 			{
 				GuildId = guildId;
 				VoiceInfo = voiceInfo;
+				_timeoutAction = timeoutAction;
+
+				InitTimeout();
 			}
 
 			public void UpdateTime()
 			{
 				LastUsed = DateTime.UtcNow;
+				InitTimeout();
+			}
+
+			private void InitTimeout()
+			{
+				_timeoutTimer?.Stop();
+				_timeoutTimer?.Dispose();
+				
+				_timeoutTimer = new Timer
+				{
+					Interval = Timeout.TotalMilliseconds,
+					AutoReset = false,
+					Enabled = true
+				};
+				_timeoutTimer.Elapsed += (sender, args) => _timeoutAction.Invoke();
 			}
 
 			public ulong GuildId { get; }
@@ -62,15 +86,6 @@ namespace PuroBot.Services
 			{
 				_voiceInfo?.Dispose();
 			}
-		}
-
-		private readonly List<ConnectionInfo> _activeConnections = new List<ConnectionInfo>();
-		private readonly TimeSpan _timeout = new TimeSpan(0, 5, 0);
-
-		public VoiceService()
-		{
-			var checkTimeoutThread = new Thread(CheckTimeout) {IsBackground = true};
-			checkTimeoutThread.Start();
 		}
 
 		public async Task<VoiceInfo> JoinChannel(ICommandContext context, IVoiceChannel channel = null)
@@ -107,7 +122,6 @@ namespace PuroBot.Services
 
 		public Task LeaveChannel(ICommandContext context)
 		{
-			GetInfo(context.Guild.Id)?.VoiceChannel.DisconnectAsync();
 			Remove(context.Guild.Id);
 			return Task.CompletedTask;
 		}
@@ -116,7 +130,7 @@ namespace PuroBot.Services
 		{
 			lock (_activeConnections)
 			{
-				_activeConnections.Add(new ConnectionInfo(guildId, channel));
+				_activeConnections.Add(new ConnectionInfo(guildId, channel, () => Remove(guildId)));
 			}
 		}
 
@@ -153,26 +167,6 @@ namespace PuroBot.Services
 				}
 
 				_activeConnections.RemoveAll(i => i.GuildId == guildId);
-			}
-		}
-
-		[SuppressMessage("ReSharper", "FunctionNeverReturns")]
-		private void CheckTimeout()
-		{
-			while (true)
-			{
-				ConnectionInfo[] oldConnections;
-				lock (_activeConnections)
-				{
-					oldConnections = _activeConnections
-						.Where(p => p.LastUsed + _timeout <= DateTime.UtcNow).ToArray();
-				}
-
-				foreach (var connection in oldConnections)
-				{
-					connection.VoiceInfo.VoiceChannel.DisconnectAsync();
-					Remove(connection.GuildId);
-				}
 			}
 		}
 	}

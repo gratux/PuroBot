@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Xml.Serialization;
 using PuroBot.Config;
@@ -9,42 +10,32 @@ namespace PuroBot.StaticServices
 		private const string GlobalPath = "Config/global.xml";
 		private const string ServerPath = "Config/servers.xml";
 
-		private static GlobalConfig _global;
-		private static ServersConfig _servers;
-		
-		public static GlobalConfig Global
-		{
-			get => _global;
-			set
-			{
-				_global = value;
-				Save();
-			}
-		}
+		private static ObservableCollection<Server> _servers;
 
-		public static ServersConfig Servers
+		public static GlobalConfig Global { get; private set; }
+
+		public static ObservableCollection<Server> Servers
 		{
 			get => _servers;
-			set
+			private set
 			{
 				_servers = value;
-				Save();
+				_servers.CollectionChanged += (sender, args) => Save();
 			}
 		}
 
 		static ConfigService()
 		{
 			Load();
-			_servers.CollectionChanged += (sender, args) => Save();
 		}
 
 		private static void Save()
 		{
 			var globalSer = new XmlSerializer(typeof(GlobalConfig));
 			using var globalWriter = new StreamWriter(GlobalPath);
-			globalSer.Serialize(globalWriter, _global);
+			globalSer.Serialize(globalWriter, Global);
 
-			var serversSer = new XmlSerializer(typeof(ServersConfig));
+			var serversSer = new XmlSerializer(typeof(ObservableCollection<Server>));
 			using var serversWriter = new StreamWriter(ServerPath);
 			serversSer.Serialize(serversWriter, _servers);
 		}
@@ -53,11 +44,11 @@ namespace PuroBot.StaticServices
 		{
 			var globalSer = new XmlSerializer(typeof(GlobalConfig));
 			using var globalReader = new StreamReader(GlobalPath);
-			_global = (GlobalConfig) globalSer.Deserialize(globalReader);
-
-			var serversSer = new XmlSerializer(typeof(ServersConfig));
+			Global = (GlobalConfig) globalSer.Deserialize(globalReader);
+			
+			var serversSer = new XmlSerializer(typeof(ObservableCollection<Server>));
 			using var serversReader = new StreamReader(ServerPath);
-			_servers = (ServersConfig) serversSer.Deserialize(serversReader);
+			Servers = (ObservableCollection<Server>) serversSer.Deserialize(serversReader);
 		}
 	}
 }

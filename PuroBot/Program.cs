@@ -1,11 +1,8 @@
-﻿using System;
-using System.IO;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using PuroBot.Handlers;
-using PuroBot.Services;
 using PuroBot.StaticServices;
 
 namespace PuroBot

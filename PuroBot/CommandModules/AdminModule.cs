@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using PuroBot.StaticServices;
 
 namespace PuroBot.CommandModules
 {
@@ -26,6 +27,17 @@ namespace PuroBot.CommandModules
 				Task.Delay(5000).Wait();
 				responseTask.Result.DeleteAsync().Wait();
 			});
+		}
+
+		[Command("setpfx")]
+		[Summary("set a new command prefix")]
+		public async Task SetPrefixCommand([Summary("the new prefix")] char prefix)
+		{
+			var server = ConfigService.Servers.FirstOrDefault(s => s.Id == Context.Guild.Id);
+			ConfigService.Servers.Remove(server);
+			server.Prefix = prefix;
+			ConfigService.Servers.Add(server);
+			await ReplyAsync($"Set new prefix \"{prefix}\"");
 		}
 	}
 }

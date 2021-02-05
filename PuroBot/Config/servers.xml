@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ServersConfig xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-    <anyType xsi:type="Server">
-        <Id>701475360897892483</Id>
+<ArrayOfServer xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <Server>
+        <Id>793555880729509888</Id>
         <Prefix>126</Prefix>
-    </anyType>
-</ServersConfig>
+    </Server>
+</ArrayOfServer>

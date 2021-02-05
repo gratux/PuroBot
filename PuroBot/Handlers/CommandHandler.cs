@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -36,15 +35,12 @@ namespace PuroBot.Handlers
 		private readonly IServiceProvider _services;
 		private readonly DiscordSocketClient _client;
 		private readonly CommandService _commands;
-
-		private readonly Dictionary<ulong, char> _prefixes;
-
+		
 		public CommandHandler(DiscordSocketClient client, CommandService commands, IServiceProvider services)
 		{
 			_client = client;
 			_commands = commands;
 			_services = services;
-			_prefixes = ConfigService.Servers.ToDictionary(s => s.Id, s => s.Prefix);
 		}
 
 		public async Task InstallCommandsAsync()
@@ -64,11 +60,17 @@ namespace PuroBot.Handlers
 			var argPos = 0;
 
 			var guildId = ((SocketGuildChannel) message.Channel).Guild.Id;
-			if (!_prefixes.TryGetValue(guildId, out var prefix))
+
+			char prefix;
+			try
+			{
+				prefix = ConfigService.Servers.First(s => s.Id == guildId).Prefix;
+			}
+			catch (InvalidOperationException)
 			{
 				// server not in config -> add with default value
 				prefix = '~';
-				ConfigService.Servers.Add(new Server()
+				ConfigService.Servers.Add(new Server
 				{
 					Id = guildId,
 					Prefix = prefix
