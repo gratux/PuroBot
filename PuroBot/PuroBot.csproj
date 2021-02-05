@@ -5,6 +5,7 @@
         <TargetFramework>netcoreapp3.1</TargetFramework>
         <AssemblyVersion>0.6.0.*</AssemblyVersion>
         <Deterministic>false</Deterministic>
+        <LangVersion>default</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
@@ -20,11 +21,12 @@
         <Content Update="Resources/**">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
-        <None Update="botToken.txt">
+        <None Update="engsyn">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
-        <None Update="engsyn">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        <None Update="Config/**/*.xml">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <None Include="bin\Debug\netcoreapp3.1\botToken.txt" />
     </ItemGroup>
 </Project>

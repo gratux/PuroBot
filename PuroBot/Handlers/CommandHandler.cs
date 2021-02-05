@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
+using PuroBot.Config;
 using PuroBot.Services;
+using PuroBot.StaticServices;
 
 namespace PuroBot.Handlers
 {
@@ -13,6 +16,7 @@ namespace PuroBot.Handlers
 	{
 		private readonly CommandService _commands;
 		private readonly DiscordSocketClient _client;
+
 		public Initialize(CommandService commands = null, DiscordSocketClient client = null)
 		{
 			_commands = commands ?? new CommandService();
@@ -26,21 +30,21 @@ namespace PuroBot.Handlers
 			.AddSingleton<VoiceService>()
 			.BuildServiceProvider();
 	}
-	
+
 	public class CommandHandler
 	{
 		private readonly IServiceProvider _services;
 		private readonly DiscordSocketClient _client;
 		private readonly CommandService _commands;
-		
-		private readonly Dictionary<ulong, char> _prefixes; // TODO: json interaction
 
-		public CommandHandler(DiscordSocketClient client, CommandService commands, IServiceProvider services, Dictionary<ulong, char> prefixes = null)
+		private readonly Dictionary<ulong, char> _prefixes;
+
+		public CommandHandler(DiscordSocketClient client, CommandService commands, IServiceProvider services)
 		{
 			_client = client;
 			_commands = commands;
 			_services = services;
-			_prefixes = prefixes ?? new Dictionary<ulong, char>();
+			_prefixes = ConfigService.Servers.ToDictionary(s => s.Id, s => s.Prefix);
 		}
 
 		public async Task InstallCommandsAsync()
@@ -53,18 +57,27 @@ namespace PuroBot.Handlers
 		{
 			// Don't process the command if it was a system message
 			if (!(arg is SocketUserMessage message)) return;
-
+			// ignore bots
+			if (message.Author.IsBot) return;
+			
 			// Create a number to track where the prefix ends and the command begins
 			var argPos = 0;
 
 			var guildId = ((SocketGuildChannel) message.Channel).Guild.Id;
 			if (!_prefixes.TryGetValue(guildId, out var prefix))
+			{
+				// server not in config -> add with default value
 				prefix = '~';
+				ConfigService.Servers.Add(new Server()
+				{
+					Id = guildId,
+					Prefix = prefix
+				});
+			}
 
-			// Determine if the message is a command based on the prefix and make sure no bots trigger commands
+			// Determine if the message is a command based on the prefix
 			if (!(message.HasCharPrefix(prefix, ref argPos) ||
-			      message.HasMentionPrefix(_client.CurrentUser, ref argPos)) ||
-			    message.Author.IsBot)
+			      message.HasMentionPrefix(_client.CurrentUser, ref argPos)))
 				return;
 
 			// Create a WebSocket-based command context based on the message

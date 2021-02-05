@@ -1,9 +1,11 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using PuroBot.Handlers;
+using PuroBot.Services;
 using PuroBot.StaticServices;
 
 namespace PuroBot
@@ -14,7 +16,7 @@ namespace PuroBot
 
 		private static void Main()
 		{
-			var token = File.ReadAllText("botToken.txt").Trim();
+			var token = ConfigService.Global.Token;
 			MainAsync(token).GetAwaiter().GetResult();
 		}
 

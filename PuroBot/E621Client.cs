@@ -12,7 +12,7 @@ namespace PuroBot
 		private static readonly string UserAgent =
 			$"PuroBot/{Assembly.GetExecutingAssembly().GetName().Version} (by d3r_5h06un)";
 
-		private static readonly Semaphore Sp = new Semaphore(1, 1);
+		private static readonly SemaphoreSlim Sp = new SemaphoreSlim(1);
 
 		public E621Client() : base(UserAgent)
 		{
@@ -20,7 +20,7 @@ namespace PuroBot
 
 		public async Task<List<string>> GetPostUrls(string tags, int count, int minScore = 10)
 		{
-			Sp.WaitOne();
+			await Sp.WaitAsync();
 			var searchTask = Search(new E621SearchOptions
 			{
 				Tags = $"{tags} score:>={minScore}",
