@@ -14,7 +14,7 @@ namespace PuroBot.StaticServices
 			client.Log += LogAsync;
 			command.Log += LogAsync;
 		}
-		
+
 		public static Task LogAsync(LogMessage msg)
 		{
 			switch (msg.Exception)

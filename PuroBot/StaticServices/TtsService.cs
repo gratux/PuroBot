@@ -16,7 +16,7 @@ namespace PuroBot.StaticServices
 					UseShellExecute = false
 				}
 			};
-			
+
 			engsyn.Start();
 			engsyn.StandardInput.Write(message);
 

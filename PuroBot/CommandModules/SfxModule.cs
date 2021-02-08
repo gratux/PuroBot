@@ -14,11 +14,10 @@ namespace PuroBot.CommandModules
 	[RequireUserPermission(GuildPermission.Administrator)]
 	public class SfxModule : ModuleBase<SocketCommandContext>
 	{
-		private readonly VoiceService _voice;
-
 		private const string BaseAudioPath = "Resources/SpeakAudio/";
 		private const string AudioExt = "pcm";
-		private static readonly SemaphoreSlim Sp = new SemaphoreSlim(1);
+		private static readonly SemaphoreSlim Sp = new(1);
+		private readonly VoiceService _voice;
 
 		public SfxModule(VoiceService voice)
 		{
@@ -50,7 +49,7 @@ namespace PuroBot.CommandModules
 
 				//using var ffmpeg = CreateStream(path);
 				//await using var audioData = ffmpeg.StandardOutput.BaseStream;
-				
+
 				await using var fileStream = File.Open(path, FileMode.Open);
 				await fileStream.CopyToAsync(audioStream);
 			}

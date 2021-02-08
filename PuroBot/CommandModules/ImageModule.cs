@@ -1,13 +1,18 @@
 using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Discord.Commands;
 using PuroBot.Extensions;
+using SodiumDL;
 
 namespace PuroBot.CommandModules
 {
 	public class ImageModule : ModuleBase<SocketCommandContext>
 	{
+		private static readonly string UserAgent =
+			$"PuroBot/{Assembly.GetExecutingAssembly().GetName().Version} (by d3r_5h06un)";
+
 		[Command("e621")]
 		[Description("get posts from e621.net")]
 		[RequireNsfw]
@@ -17,10 +22,10 @@ namespace PuroBot.CommandModules
 			[Remainder] [Description("the tags to be searched (default: none)")]
 			string tags = "")
 		{
-			var e621 = new E621Client();
-			var posts = e621.GetPostUrls(tags, count).Result;
+			var e621 = new SodiumClient(userAgent: UserAgent);
+			var posts = await e621.GetPostsAsync(tags, count);
 			await ReplyAsync("Here you go, human:");
-			await posts.SendMany(msg => ReplyAsync(msg));
+			await posts.Select(p => p.File?.AbsoluteUri).SendMany(msg => ReplyAsync(msg));
 		}
 
 		[Command("selfie")]
@@ -30,8 +35,9 @@ namespace PuroBot.CommandModules
 		public async Task SelfieCommand([Description("minimum e621 score (default: 10)")]
 			int minScore = 10)
 		{
-			var e621 = new E621Client();
-			var url = e621.GetPostUrls("puro_(changed) rating:s solo", 1, minScore).Result.FirstOrDefault();
+			var e621 = new SodiumClient(userAgent: UserAgent);
+			var posts = await e621.GetPostsAsync($"puro_(changed) rating:s solo score:>{minScore}", 1);
+			var url = posts.FirstOrDefault()?.File.AbsoluteUri;
 			if (string.IsNullOrWhiteSpace(url))
 				await ReplyAsync("My camera is broken... Sorry Human.");
 			else

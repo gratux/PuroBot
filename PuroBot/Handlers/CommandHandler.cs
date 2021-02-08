@@ -13,8 +13,8 @@ namespace PuroBot.Handlers
 {
 	public class Initialize
 	{
-		private readonly CommandService _commands;
 		private readonly DiscordSocketClient _client;
+		private readonly CommandService _commands;
 
 		public Initialize(CommandService commands = null, DiscordSocketClient client = null)
 		{
@@ -22,20 +22,23 @@ namespace PuroBot.Handlers
 			_client = client ?? new DiscordSocketClient();
 		}
 
-		public IServiceProvider BuildServiceProvider() => new ServiceCollection()
-			.AddSingleton(_client)
-			.AddSingleton(_commands)
-			.AddSingleton<CommandHandler>()
-			.AddSingleton<VoiceService>()
-			.BuildServiceProvider();
+		public IServiceProvider BuildServiceProvider()
+		{
+			return new ServiceCollection()
+				.AddSingleton(_client)
+				.AddSingleton(_commands)
+				.AddSingleton<CommandHandler>()
+				.AddSingleton<VoiceService>()
+				.BuildServiceProvider();
+		}
 	}
 
 	public class CommandHandler
 	{
-		private readonly IServiceProvider _services;
 		private readonly DiscordSocketClient _client;
 		private readonly CommandService _commands;
-		
+		private readonly IServiceProvider _services;
+
 		public CommandHandler(DiscordSocketClient client, CommandService commands, IServiceProvider services)
 		{
 			_client = client;
@@ -55,7 +58,7 @@ namespace PuroBot.Handlers
 			if (!(arg is SocketUserMessage message)) return;
 			// ignore bots
 			if (message.Author.IsBot) return;
-			
+
 			// Create a number to track where the prefix ends and the command begins
 			var argPos = 0;
 

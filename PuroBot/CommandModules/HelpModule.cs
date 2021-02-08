@@ -31,9 +31,7 @@ namespace PuroBot.CommandModules
 				(x, y) => StringComparer.InvariantCulture.Compare(x.Aliases.First(), y.Aliases.First()));
 
 			foreach (var command in allCommands)
-			{
 				builder.AddField($"{prefix}{command.Aliases.First()}".AsCode(), await CommandHelp(command));
-			}
 
 			await ReplyAsync(embed: builder.Build());
 		}
@@ -50,8 +48,9 @@ namespace PuroBot.CommandModules
 						$"{p.Name.AsCode()} {("<" + p.Type + ">").AsCode()}" +
 						$"{(p.Summary != null ? ": " + p.Summary.AsItalic() : null)}")
 					.ToArray();
-			var preconditions = command.Preconditions.Concat(command.Module.Preconditions).Select(p => p.Decode()).Distinct().ToArray();
-			
+			var preconditions = command.Preconditions.Concat(command.Module.Preconditions).Select(p => p.Decode())
+				.Distinct().ToArray();
+
 			var commandHelp = $"{summary.AsItalic()}\n"
 			                  + "Command".AsHeader() + $": {name.AsCode()}\n"
 			                  + aliases.IncludeIfAny("Aliases".AsHeader(), i => i.AsCode(), ", ")

@@ -8,7 +8,8 @@ namespace PuroBot.Extensions
 {
 	public static class Discord
 	{
-		public static async Task SendMany(this List<string> messages, Func<string, Task<IUserMessage>> sendMsgFunc)
+		public static async Task SendMany(this IEnumerable<string> messages,
+			Func<string, Task<IUserMessage>> sendMsgFunc)
 		{
 			var msgChunks = messages.Partition();
 			foreach (var chunk in msgChunks)

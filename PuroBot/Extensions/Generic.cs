@@ -8,9 +8,19 @@ namespace PuroBot.Extensions
 {
 	public static class Generic
 	{
-		public static IEnumerable<List<T>> Partition<T>(this List<T> list, int size = 5)
+		public static IEnumerable<T[]> Partition<T>(this IEnumerable<T> list, int chunkSize = 5)
 		{
-			for (var i = 0; i < list.Count; i += size) yield return list.GetRange(i, Math.Min(size, list.Count - i));
+			using var enumerator = list.GetEnumerator();
+			var chunk = new List<T>();
+			
+			for(var i = 0; enumerator.MoveNext(); i++)
+			{
+				chunk.Add(enumerator.Current);
+				if ((i + 1) % chunkSize != 0) continue;
+				
+				yield return chunk.ToArray();
+				chunk.Clear();
+			}
 		}
 
 		public static IEnumerable<string> GetFileTree(this DirectoryInfo d, string fileSearchPattern = "",
@@ -24,7 +34,7 @@ namespace PuroBot.Extensions
 			if (subDirs.Length == 0 && files.Length == 0 && ignoreEmptyDirs) yield return "";
 
 			yield return d.Name;
-			
+
 			foreach (var subDir in subDirs)
 			{
 				// ReSharper disable PossibleMultipleEnumeration

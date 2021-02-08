@@ -11,82 +11,8 @@ namespace PuroBot.Services
 {
 	public class VoiceService
 	{
-		private static readonly TimeSpan Timeout = new TimeSpan(0, 5, 0);
-		private readonly List<ConnectionInfo> _activeConnections = new List<ConnectionInfo>();
-		
-		public class VoiceInfo : IDisposable
-		{
-			public VoiceInfo(AudioOutStream audioStream, IVoiceChannel voiceChannel)
-			{
-				AudioStream = audioStream;
-				VoiceChannel = voiceChannel;
-			}
-
-			public AudioOutStream AudioStream { get; }
-			public IVoiceChannel VoiceChannel { get; }
-
-			public void Dispose()
-			{
-				VoiceChannel?.DisconnectAsync();
-				AudioStream?.Dispose();
-			}
-		}
-
-		private class ConnectionInfo : IDisposable
-		{
-			private Timer _timeoutTimer;
-			private readonly Action _timeoutAction;
-
-			public ConnectionInfo(ulong guildId, VoiceInfo voiceInfo, Action timeoutAction)
-			{
-				GuildId = guildId;
-				VoiceInfo = voiceInfo;
-				_timeoutAction = timeoutAction;
-
-				InitTimeout();
-			}
-
-			public void UpdateTime()
-			{
-				LastUsed = DateTime.UtcNow;
-				InitTimeout();
-			}
-
-			private void InitTimeout()
-			{
-				_timeoutTimer?.Stop();
-				_timeoutTimer?.Dispose();
-				
-				_timeoutTimer = new Timer
-				{
-					Interval = Timeout.TotalMilliseconds,
-					AutoReset = false,
-					Enabled = true
-				};
-				_timeoutTimer.Elapsed += (sender, args) => _timeoutAction.Invoke();
-			}
-
-			public ulong GuildId { get; }
-			public DateTime LastUsed { get; private set; }
-
-			private VoiceInfo _voiceInfo;
-
-			public VoiceInfo VoiceInfo
-			{
-				get => _voiceInfo;
-				set
-				{
-					_voiceInfo?.Dispose();
-					_voiceInfo = value;
-					UpdateTime();
-				}
-			}
-
-			public void Dispose()
-			{
-				_voiceInfo?.Dispose();
-			}
-		}
+		private static readonly TimeSpan Timeout = new(0, 5, 0);
+		private readonly List<ConnectionInfo> _activeConnections = new();
 
 		public async Task<VoiceInfo> JoinChannel(ICommandContext context, IVoiceChannel channel = null)
 		{
@@ -161,12 +87,83 @@ namespace PuroBot.Services
 		{
 			lock (_activeConnections)
 			{
-				foreach (var info in _activeConnections.Where(i => i.GuildId == guildId))
-				{
-					info.Dispose();
-				}
+				foreach (var info in _activeConnections.Where(i => i.GuildId == guildId)) info.Dispose();
 
 				_activeConnections.RemoveAll(i => i.GuildId == guildId);
+			}
+		}
+
+		public class VoiceInfo : IDisposable
+		{
+			public VoiceInfo(AudioOutStream audioStream, IVoiceChannel voiceChannel)
+			{
+				AudioStream = audioStream;
+				VoiceChannel = voiceChannel;
+			}
+
+			public AudioOutStream AudioStream { get; }
+			public IVoiceChannel VoiceChannel { get; }
+
+			public void Dispose()
+			{
+				VoiceChannel?.DisconnectAsync();
+				AudioStream?.Dispose();
+			}
+		}
+
+		private class ConnectionInfo : IDisposable
+		{
+			private readonly Action _timeoutAction;
+			private Timer _timeoutTimer;
+
+			private VoiceInfo _voiceInfo;
+
+			public ConnectionInfo(ulong guildId, VoiceInfo voiceInfo, Action timeoutAction)
+			{
+				GuildId = guildId;
+				VoiceInfo = voiceInfo;
+				_timeoutAction = timeoutAction;
+
+				InitTimeout();
+			}
+
+			public ulong GuildId { get; }
+			public DateTime LastUsed { get; private set; }
+
+			public VoiceInfo VoiceInfo
+			{
+				get => _voiceInfo;
+				set
+				{
+					_voiceInfo?.Dispose();
+					_voiceInfo = value;
+					UpdateTime();
+				}
+			}
+
+			public void Dispose()
+			{
+				_voiceInfo?.Dispose();
+			}
+
+			public void UpdateTime()
+			{
+				LastUsed = DateTime.UtcNow;
+				InitTimeout();
+			}
+
+			private void InitTimeout()
+			{
+				_timeoutTimer?.Stop();
+				_timeoutTimer?.Dispose();
+
+				_timeoutTimer = new Timer
+				{
+					Interval = Timeout.TotalMilliseconds,
+					AutoReset = false,
+					Enabled = true
+				};
+				_timeoutTimer.Elapsed += (sender, args) => _timeoutAction.Invoke();
 			}
 		}
 	}

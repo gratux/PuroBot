@@ -11,7 +11,7 @@ namespace PuroBot.CommandModules
 			PlateFingers = "Resources/JaySayPics/JaySayPlate_Fingers.png",
 			WritingBg = "Resources/JaySayPics/JaySayWriting.png";
 
-		private static readonly MagickReadSettings TextOptions = new MagickReadSettings
+		private static readonly MagickReadSettings TextOptions = new()
 		{
 			FontFamily = "Handgley",
 			FontStyle = FontStyleType.Bold,

@@ -11,9 +11,9 @@
     <ItemGroup>
         <PackageReference Include="Discord.Net" Version="2.3.0" />
         <PackageReference Include="Discord.Net.Commands" Version="2.3.0" />
-        <PackageReference Include="E621Client" Version="0.0.3" />
         <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="7.23.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.1" />
+        <PackageReference Include="SodiumDL" Version="0.5.0" />
     </ItemGroup>
 
     <ItemGroup>

@@ -12,6 +12,11 @@ namespace PuroBot.StaticServices
 
 		private static ObservableCollection<Server> _servers;
 
+		static ConfigService()
+		{
+			Load();
+		}
+
 		public static GlobalConfig Global { get; private set; }
 
 		public static ObservableCollection<Server> Servers
@@ -22,11 +27,6 @@ namespace PuroBot.StaticServices
 				_servers = value;
 				_servers.CollectionChanged += (sender, args) => Save();
 			}
-		}
-
-		static ConfigService()
-		{
-			Load();
 		}
 
 		private static void Save()
@@ -45,7 +45,7 @@ namespace PuroBot.StaticServices
 			var globalSer = new XmlSerializer(typeof(GlobalConfig));
 			using var globalReader = new StreamReader(GlobalPath);
 			Global = (GlobalConfig) globalSer.Deserialize(globalReader);
-			
+
 			var serversSer = new XmlSerializer(typeof(ObservableCollection<Server>));
 			using var serversReader = new StreamReader(ServerPath);
 			Servers = (ObservableCollection<Server>) serversSer.Deserialize(serversReader);

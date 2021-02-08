@@ -8,17 +8,16 @@ namespace PuroBot.CommandModules
 {
 	public class TtsModule : ModuleBase<SocketCommandContext>
 	{
+		private static readonly SemaphoreSlim Sp = new(1);
 		private readonly VoiceService _voice;
-		
-		private static readonly SemaphoreSlim Sp = new SemaphoreSlim(1);
 
 		public TtsModule(VoiceService voice) => _voice = voice;
-		
+
 		[Command("tts")]
 		public async Task TtsCommand([Remainder] string message)
 		{
 			await using var pcm = TtsService.Synthesize(message);
-			
+
 			await Sp.WaitAsync();
 			try
 			{
