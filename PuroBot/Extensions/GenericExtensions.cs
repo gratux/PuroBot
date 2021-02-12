@@ -6,23 +6,8 @@ using System.Linq;
 
 namespace PuroBot.Extensions
 {
-	public static class Generic
+	public static class GenericExtensions
 	{
-		public static IEnumerable<T[]> Partition<T>(this IEnumerable<T> list, int chunkSize = 5)
-		{
-			using var enumerator = list.GetEnumerator();
-			var chunk = new List<T>();
-			
-			for(var i = 0; enumerator.MoveNext(); i++)
-			{
-				chunk.Add(enumerator.Current);
-				if ((i + 1) % chunkSize != 0) continue;
-				
-				yield return chunk.ToArray();
-				chunk.Clear();
-			}
-		}
-
 		public static IEnumerable<string> GetFileTree(this DirectoryInfo d, string fileSearchPattern = "",
 			bool ignoreEmptyDirs = true, bool includeExtensions = false)
 		{
@@ -53,15 +38,6 @@ namespace PuroBot.Extensions
 				var symbol = i == files.Length - 1 ? "└ " : "├ ";
 				yield return symbol + filename;
 			}
-		}
-
-		public static string IncludeIfAny(this IReadOnlyList<string> items, string header,
-			Func<string, string> itemFormatter, string separator, bool startInNewLine = false)
-		{
-			if (items.Any())
-				return $"{header.AsHeader()}: " + (startInNewLine ? "\n" : null) +
-				       string.Join(separator, items.Select(itemFormatter.Invoke)) + "\n";
-			return null;
 		}
 	}
 }

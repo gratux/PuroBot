@@ -6,7 +6,7 @@ using Discord.Commands;
 
 namespace PuroBot.Extensions
 {
-	public static class Discord
+	public static class DiscordExtensions
 	{
 		public static async Task SendMany(this IEnumerable<string> messages,
 			Func<string, Task<IUserMessage>> sendMsgFunc)
@@ -19,7 +19,7 @@ namespace PuroBot.Extensions
 			}
 		}
 
-		public static string Decode(this PreconditionAttribute precondition)
+		public static string DecodePrecondition(this PreconditionAttribute precondition)
 		{
 			switch (precondition)
 			{

@@ -19,10 +19,7 @@ namespace PuroBot.CommandModules
 		private static readonly SemaphoreSlim Sp = new(1);
 		private readonly VoiceService _voice;
 
-		public SfxModule(VoiceService voice)
-		{
-			_voice = voice;
-		}
+		public SfxModule(VoiceService voice) => _voice = voice;
 
 		[Command]
 		[Summary("play a sound effect")]

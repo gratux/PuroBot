@@ -11,10 +11,7 @@ namespace PuroBot.CommandModules
 	{
 		private readonly VoiceService _voice;
 
-		public VoiceModule(VoiceService voice)
-		{
-			_voice = voice;
-		}
+		public VoiceModule(VoiceService voice) => _voice = voice;
 
 		[Command("join")]
 		[Summary("join the current voice channel")]

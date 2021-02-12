@@ -22,15 +22,14 @@ namespace PuroBot.Handlers
 			_client = client ?? new DiscordSocketClient();
 		}
 
-		public IServiceProvider BuildServiceProvider()
-		{
-			return new ServiceCollection()
+		public IServiceProvider BuildServiceProvider() =>
+			new ServiceCollection()
 				.AddSingleton(_client)
 				.AddSingleton(_commands)
 				.AddSingleton<CommandHandler>()
 				.AddSingleton<VoiceService>()
+				.AddTransient<SpeechService>()
 				.BuildServiceProvider();
-		}
 	}
 
 	public class CommandHandler

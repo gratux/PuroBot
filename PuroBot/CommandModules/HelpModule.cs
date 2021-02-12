@@ -11,10 +11,7 @@ namespace PuroBot.CommandModules
 	{
 		private readonly CommandService _command;
 
-		public HelpModule(CommandService command)
-		{
-			_command = command;
-		}
+		public HelpModule(CommandService command) => _command = command;
 
 		[Command("help")]
 		[Summary("show commands and their usage")]
@@ -48,7 +45,8 @@ namespace PuroBot.CommandModules
 						$"{p.Name.AsCode()} {("<" + p.Type + ">").AsCode()}" +
 						$"{(p.Summary != null ? ": " + p.Summary.AsItalic() : null)}")
 					.ToArray();
-			var preconditions = command.Preconditions.Concat(command.Module.Preconditions).Select(p => p.Decode())
+			var preconditions = command.Preconditions.Concat(command.Module.Preconditions)
+				.Select(p => p.DecodePrecondition())
 				.Distinct().ToArray();
 
 			var commandHelp = $"{summary.AsItalic()}\n"
