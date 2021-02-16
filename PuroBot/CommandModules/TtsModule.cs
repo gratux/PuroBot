@@ -20,13 +20,13 @@ namespace PuroBot.CommandModules
 		[Command("tts")]
 		public async Task TtsCommand([Remainder] string message)
 		{
-			var pcm = _speech.SynthesizeMessage(message);
+			var pcm = await _speech.SynthesizeMessageAsync(message);
 
 			await Sp.WaitAsync();
 			try
 			{
 				var voiceInfo = await _voice.JoinChannel(Context);
-				await pcm.CopyToAsync(voiceInfo.AudioStream);
+				await voiceInfo.AudioStream.WriteAsync(pcm);
 			}
 			finally
 			{

@@ -21,7 +21,7 @@ namespace PuroBot.Extensions
 			}
 		}
 
-		public static bool Match<T>(this IEnumerable<T> lhs, List<T> rhs, int startIdx, int length)
+		public static bool Matches<T>(this IEnumerable<T> lhs, List<T> rhs, int startIdx, int length)
 		{
 			var lhsSub = lhs.Skip(startIdx).Take(length).ToList();
 			if (lhsSub.Count != rhs.Count)
@@ -47,6 +47,15 @@ namespace PuroBot.Extensions
 		{
 			for (var i = src.Count - 1; i >= 0; i--)
 				yield return src[i];
+		}
+
+		public static int IndexOfAny<T>(this List<T> src, int startIndex, params T[] items) =>
+			src.FindIndex(startIndex, items.Contains);
+
+		public static void Replace<T>(this List<T> src, int startIndex, int count, List<T> replacement)
+		{
+			src.RemoveRange(startIndex, count);
+			src.InsertRange(startIndex, replacement);
 		}
 	}
 }
