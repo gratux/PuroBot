@@ -35,9 +35,9 @@ namespace PuroBot.Extensions
 			Func<string, string> itemFormatter, string separator, bool startInNewLine = false)
 		{
 			if (items.Any())
-				return $"{header.AsHeader()}: " + (startInNewLine ? "\n" : null) +
+				return $"{header.AsHeader()}: " + (startInNewLine ? "\n" : string.Empty) +
 				       string.Join(separator, items.Select(itemFormatter.Invoke)) + "\n";
-			return null;
+			return string.Empty;
 		}
 
 		public static T TryGetNext<T>(this IEnumerator<T> enumerator) =>

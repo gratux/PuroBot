@@ -28,10 +28,10 @@ namespace PuroBot.Extensions
 				case RequireUserPermissionAttribute attr:
 					var decode = attr.ChannelPermission.HasValue
 						? $"Channel Permission {attr.ChannelPermission.ToString().AsCode()}"
-						: null;
-					decode += (decode != null ? ", " : null) + (attr.GuildPermission.HasValue
+						: string.Empty;
+					decode += (string.IsNullOrWhiteSpace(decode) ? string.Empty : ", ") + (attr.GuildPermission.HasValue
 						? $"Guild Permission {attr.GuildPermission.ToString().AsCode()}"
-						: null);
+						: string.Empty);
 					return decode;
 				default:
 					return precondition.GetType().Name;

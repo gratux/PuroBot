@@ -41,9 +41,9 @@ namespace PuroBot.CommandModules
 			var parameterInfos = command.Parameters;
 			var parameterDesc =
 				parameterInfos.Select(p =>
-						$"{(p.IsOptional ? "[Optional] " : null)}" +
+						(p.IsOptional ? "[Optional] " : string.Empty)+
 						$"{p.Name.AsCode()} {("<" + p.Type + ">").AsCode()}" +
-						$"{(p.Summary != null ? ": " + p.Summary.AsItalic() : null)}")
+						$"{(string.IsNullOrWhiteSpace(p.Summary) ? string.Empty : ": " + p.Summary.AsItalic())}")
 					.ToArray();
 			var preconditions = command.Preconditions.Concat(command.Module.Preconditions)
 				.Select(p => p.DecodePrecondition())

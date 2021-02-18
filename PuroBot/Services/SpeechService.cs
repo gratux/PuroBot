@@ -16,6 +16,22 @@ namespace PuroBot.Services
 	// bisqwit's speech synthesizer, ported to c#
 	public partial class SpeechService
 	{
+		private const int SampleRate = 48000;
+		private const int MaxOrder = 256;
+
+		private const double FrameTimeFactor = 0.01d;
+		private const double TokenPitch = 90.0d;
+		private const double Volume = 0.7d;
+		private const double BreathBaseLevel = 0.4d;
+		private const double VoiceBaseLevel = 1.0d;
+
+		private double _sampleAverage;
+		private double[] _bp;
+		private int _offset;
+		private int _count;
+
+		private readonly List<byte> _audio = new();
+
 		private static readonly Random Rnd = new();
 
 		private static bool IsVowel(u32char c) => Vowels.Contains(c);
@@ -27,11 +43,180 @@ namespace PuroBot.Services
 		public async Task<byte[]> SynthesizeMessageAsync(string message)
 		{
 			var phonemes = await PhonemizeAsync(message);
-			var audio = Vocalize(phonemes);
+			var audio = await Vocalize(phonemes);
 			return audio.ToArray();
 		}
 
-		private static IEnumerable<byte> Vocalize(List<ProsodyElement> phonemes) => throw new NotImplementedException();
+		private async Task<IEnumerable<byte>> Vocalize(List<ProsodyElement> phonemes)
+		{
+			InitVocalize();
+
+			var frameTimeFactor = FrameTimeFactor;
+			var tokenPitch = TokenPitch;
+			var volume = Volume;
+			var breathBaseLevel = BreathBaseLevel;
+			var voiceBaseLevel = VoiceBaseLevel;
+
+			foreach (var e in phonemes)
+			{
+				if (!Records.TryGetValue(e.Record, out var record) && !Records.TryGetValue('-', out record))
+				{
+					await LoggingService.LogAsync(new LogMessage(LogSeverity.Warning, nameof(SpeechService),
+						$"Didn't find {char.ConvertFromUtf32(e.Record)}"));
+					continue;
+				}
+
+				tokenPitch = Math.Clamp(tokenPitch + Rnd.NextDouble() - 0.5d, 50.0d, 170.0d);
+				breathBaseLevel = Math.Clamp(breathBaseLevel + (Rnd.NextDouble() - 0.5d) * 0.02d, 0.1d, 1.0d);
+				voiceBaseLevel = Math.Clamp(voiceBaseLevel + (Rnd.NextDouble() - 0.5d) * 0.02d, 0.7d, 1.0d);
+
+				var frameTime = SampleRate * frameTimeFactor;
+				var alts = record.Data;
+				var samplesCount = (int) (e.FramesCount * frameTime);
+
+				var breath = breathBaseLevel + (1.0d - breathBaseLevel) * (1.0d * record.Voice);
+				var buzz = record.Voice * voiceBaseLevel;
+				var pitch = e.RelativePitch * tokenPitch;
+
+				var doSynthFunc =
+					new Func<Frame, int, int>((frame, count) =>
+					{
+						_audio.AddRange(Synthesize(frame, volume, breath, buzz, pitch, SampleRate, count));
+						return count;
+					});
+
+				switch (record.Mode)
+				{
+					case RecordModes.ChooseRandomly:
+						doSynthFunc(alts[Rnd.Next() % alts.Length], samplesCount);
+						break;
+					case RecordModes.Trill:
+						for (var n = 0; samplesCount > 0; n++)
+							samplesCount -= doSynthFunc(alts[n % alts.Length],
+								Math.Min(samplesCount, (int) (frameTime * 1.5d)));
+						break;
+					case RecordModes.PlayInSequence:
+						for (var a = 0; a < alts.Length; a++)
+							doSynthFunc(alts[a],
+								(a + 1) * samplesCount / alts.Length - a * samplesCount / alts.Length);
+						break;
+					default:
+						throw new ArgumentOutOfRangeException();
+				}
+			}
+
+			return _audio;
+		}
+
+		private void InitVocalize()
+		{
+			_sampleAverage = 0;
+			_bp = Enumerable.Repeat(0.0d, MaxOrder).ToArray();
+			_offset = 0;
+			_count = 0;
+			_audio.Clear();
+		}
+
+		private IEnumerable<byte> Synthesize(Frame frame, double volume, double breath, double buzz, double pitch, uint sampleRate,
+			int count)
+		{
+			var coefficients = new double[MaxOrder];
+			frame.Coefficients.CopyTo(coefficients, 0);
+
+			var pGain = frame.Gain;
+			var pPitch = pitch;
+			var pBreath = breath;
+			var pBuzz = buzz;
+
+			var hysteresis = -10;
+
+			var slice = new List<double>();
+			uint retriesBroken = 0, retriesClipping = 0;
+			double amplitude = 0, amplitudeLimit = 7000;
+
+			bool retry;
+			do
+			{
+				//TODO: does this work?
+				retry = false;
+				slice.Clear();
+				
+				for (var n = 0; n < count; n++)
+				{
+					pitch = GetWithHysteresis(pPitch, -10);
+					var gain = GetWithHysteresis(pGain, hysteresis);
+					hysteresis = (int) -Math.Clamp(8.0d + Math.Log10(gain), 1.0d, 6.0d);
+
+					_count++;
+					var w = (_count %= (int) (sampleRate / pitch)) / (sampleRate / pitch);
+					var f = (-0.5d + Rnd.NextDouble()) * GetWithHysteresis(pBreath, -12)
+					        + (Math.Pow(2, w) - 1 / (1 + w)) * GetWithHysteresis(pBuzz, -12);
+					// if (!double.IsFinite(f))
+					// 	throw new Exception($"{nameof(f)} is not finite");
+
+					var sum = f;
+					for (var j = 0; j < frame.Coefficients.Length; j++)
+						sum -= GetWithHysteresis(coefficients[j], hysteresis) *
+						       _bp[(_offset + MaxOrder - j) % MaxOrder];
+
+					if (!double.IsFinite(sum) || double.IsNaN(sum))
+					{
+						sum = 0;
+
+						retriesBroken++;
+						hysteresis = -1;
+						_sampleAverage = 0;
+						
+						if (retriesBroken < 10)
+						{
+							retry = true;
+							break;
+						}
+					}
+
+					_offset++;
+					var r = _bp[_offset %= MaxOrder] = sum;
+					var sample = r * Math.Sqrt(GetWithHysteresis(pGain, hysteresis)) * (Int16.MaxValue + 1);
+
+					_sampleAverage = _sampleAverage * 0.9993d + sample * (1 - 0.9993d);
+					sample -= _sampleAverage;
+					amplitude = n == 0 ? Math.Abs(sample) : amplitude * 0.99d + Math.Abs(sample) * 0.01d;
+					if (n == 100 && amplitude > amplitudeLimit)
+					{
+						retriesClipping++;
+						amplitudeLimit += 500;
+						
+						if (retriesClipping < 100)
+						{
+							retry = true;
+							break;
+						}
+					}
+
+					slice.Add(Math.Clamp(sample, Int16.MinValue, Int16.MaxValue));
+					slice.Add(Math.Clamp(sample, Int16.MinValue, Int16.MaxValue));
+				}
+			} while (retry);
+
+			return slice.SelectMany(BitConverter.GetBytes);
+		}
+
+		private readonly Dictionary<double, double> _last = new();
+
+		private double GetWithHysteresis(double value, int speed)
+		{
+			var newValue = value;
+			if (!_last.ContainsKey(value))
+			{
+				_last.Add(value, newValue);
+				return newValue;
+			}
+
+			var newFac = Math.Pow(2, speed);
+			var oldFac = 1 - newFac;
+			var oldValue = _last[value];
+			return _last[value] = oldValue * oldFac + newValue * newFac;
+		}
 
 		private static async Task<List<ProsodyElement>> PhonemizeAsync(string text)
 		{
@@ -392,6 +577,32 @@ namespace PuroBot.Services
 			public uint Length { get; }
 			public uint RepeatedLength { get; }
 			public uint SurroundedLength { get; }
+		}
+
+		private class Record
+		{
+			public Record(RecordModes mode, double voice, Frame[] data)
+			{
+				Mode = mode;
+				Voice = voice;
+				Data = data;
+			}
+
+			public RecordModes Mode { get; }
+			public double Voice { get; }
+			public Frame[] Data { get; }
+		}
+
+		private class Frame
+		{
+			public Frame(double gain, double[] coefficients)
+			{
+				Gain = gain;
+				Coefficients = coefficients;
+			}
+
+			public double Gain { get; }
+			public double[] Coefficients { get; }
 		}
 	}
 }

@@ -31,7 +31,7 @@ namespace PuroBot.CommandModules
 			var path = files.FirstOrDefault(f =>
 				Path.GetRelativePath(BaseAudioPath, f) == $"{filename}.{AudioExt}");
 
-			if (path == null)
+			if (string.IsNullOrWhiteSpace(path))
 			{
 				// file not found
 				await ReplyAsync("This isn't the file you are looking for");
