@@ -5,7 +5,6 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord;
 using PuroBot.Extensions;
-using PuroBot.StaticServices;
 using u32char = System.Int32;
 using u32string = System.Collections.Generic.List<int>;
 
@@ -25,14 +24,16 @@ namespace PuroBot.Services
 		private const double BreathBaseLevel = 0.4d;
 		private const double VoiceBaseLevel = 1.0d;
 
-		private double _sampleAverage;
-		private double[] _bp;
-		private int _offset;
-		private int _count;
+		private static readonly Random Rnd = new();
 
 		private readonly List<byte> _audio = new();
 
-		private static readonly Random Rnd = new();
+		private readonly Dictionary<double, double> _last = new();
+		private double[] _bp;
+		private int _count;
+		private int _offset;
+
+		private double _sampleAverage;
 
 		private static bool IsVowel(u32char c) => Vowels.Contains(c);
 
@@ -61,8 +62,8 @@ namespace PuroBot.Services
 			{
 				if (!Records.TryGetValue(e.Record, out var record) && !Records.TryGetValue('-', out record))
 				{
-					await LoggingService.LogAsync(new LogMessage(LogSeverity.Warning, nameof(SpeechService),
-						$"Didn't find {char.ConvertFromUtf32(e.Record)}"));
+					await LoggingService.Log(LogSeverity.Warning, nameof(SpeechService),
+						$"Didn't find {char.ConvertFromUtf32(e.Record)}");
 					continue;
 				}
 
@@ -117,7 +118,8 @@ namespace PuroBot.Services
 			_audio.Clear();
 		}
 
-		private IEnumerable<byte> Synthesize(Frame frame, double volume, double breath, double buzz, double pitch, uint sampleRate,
+		private IEnumerable<byte> Synthesize(Frame frame, double volume, double breath, double buzz, double pitch,
+			uint sampleRate,
 			int count)
 		{
 			var coefficients = new double[MaxOrder];
@@ -140,7 +142,7 @@ namespace PuroBot.Services
 				//TODO: does this work?
 				retry = false;
 				slice.Clear();
-				
+
 				for (var n = 0; n < count; n++)
 				{
 					pitch = GetWithHysteresis(pPitch, -10);
@@ -166,7 +168,7 @@ namespace PuroBot.Services
 						retriesBroken++;
 						hysteresis = -1;
 						_sampleAverage = 0;
-						
+
 						if (retriesBroken < 10)
 						{
 							retry = true;
@@ -185,7 +187,7 @@ namespace PuroBot.Services
 					{
 						retriesClipping++;
 						amplitudeLimit += 500;
-						
+
 						if (retriesClipping < 100)
 						{
 							retry = true;
@@ -200,8 +202,6 @@ namespace PuroBot.Services
 
 			return slice.SelectMany(BitConverter.GetBytes);
 		}
-
-		private readonly Dictionary<double, double> _last = new();
 
 		private double GetWithHysteresis(double value, int speed)
 		{
@@ -226,9 +226,7 @@ namespace PuroBot.Services
 
 			var currentSyllable = 1;
 			for (var position = 0; position < input.Count; currentSyllable++)
-			{
 				position = AssignSyllableId(position, input, syllableId, ref currentSyllable);
-			}
 
 			var pitchCurve = Enumerable.Repeat(1.0d, currentSyllable).ToList();
 			var begin = 0;
@@ -308,9 +306,9 @@ namespace PuroBot.Services
 							//syllable delimiters
 							break;
 						default:
-							await LoggingService.LogAsync(new LogMessage(LogSeverity.Debug, nameof(SpeechService),
+							await LoggingService.Log(LogSeverity.Debug, nameof(SpeechService),
 								$"Skipped unknown char: '{char.ConvertFromUtf32(input[pos])}' ({input[pos]})"
-							));
+							);
 							break;
 					}
 
@@ -470,13 +468,13 @@ namespace PuroBot.Services
 		{
 			// At this point, the result string is pretty much an ASCII representation of IPA.
 			// Now just touch up it a bit to convert it into typical Finnish pronunciation.
-			await LoggingService.LogAsync(new LogMessage(LogSeverity.Debug, nameof(SpeechService),
-				$"Before: {result.ToUtf8()}"));
+			await LoggingService.Log(LogSeverity.Debug, nameof(SpeechService),
+				$"Before: {result.ToUtf8()}");
 
 			ApplyAccentRules(result, accentRules);
 
-			await LoggingService.LogAsync(new LogMessage(LogSeverity.Debug, nameof(SpeechService),
-				$"After: {result.ToUtf8()}"));
+			await LoggingService.Log(LogSeverity.Debug, nameof(SpeechService),
+				$"After: {result.ToUtf8()}");
 		}
 
 		private static void ApplyAccentRules(u32string result, Dictionary<u32string, u32string> rules)
@@ -502,13 +500,9 @@ namespace PuroBot.Services
 		private static void ApplyCanonizationRules(u32string result, Dictionary<u32string, u32string> rules)
 		{
 			for (var position = 0; position < result.Count; position++)
-			{
 				while (ApplyCanonizationRulesAt(position, result, rules))
-				{
 					//try to apply more rules at the same position
 					position -= Math.Min(position, 3);
-				}
-			}
 		}
 
 		private static bool ApplyCanonizationRulesAt(int position, u32string result,

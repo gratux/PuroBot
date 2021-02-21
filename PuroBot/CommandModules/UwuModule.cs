@@ -1,5 +1,4 @@
 using System;
-using System.ComponentModel;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord;
@@ -54,9 +53,9 @@ namespace PuroBot.CommandModules
 
 		[Command("uwufy")]
 		[Alias("uwu")]
-		[Description("translate a message to uwu-speak")]
+		[Summary("translate a message to uwu-speak")]
 		public async Task UwuCommand(
-			[Remainder] [Description("the message i should translate")]
+			[Remainder] [Summary("the message i should translate")]
 			string message)
 		{
 			if (await CheckMsgEmpty(Context, message))
@@ -72,7 +71,7 @@ namespace PuroBot.CommandModules
 
 		[Command("uwufythis")]
 		[Alias("uwuthis")]
-		[Description("translates the mentioned message to uwu-speak")]
+		[Summary("translates the mentioned message to uwu-speak")]
 		public async Task UwuThisCommand()
 		{
 			// this returns null, if the message was written before the bot was online. why?!

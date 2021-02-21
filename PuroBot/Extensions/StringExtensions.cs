@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace PuroBot.Extensions
 {
@@ -13,7 +12,7 @@ namespace PuroBot.Extensions
 		public static string AsItalic(this string text) => $"*{text}*";
 
 		public static string AsCode(this string text, bool block = false, string language = "") =>
-			block ? $"```{language}\n{text}\n```" : $"`{text}`";
+			block ? $"\n```{language}\n{text}\n```\n" : $"`{text}`";
 
 		public static string AsListItem(this string text) => $"• {text}";
 

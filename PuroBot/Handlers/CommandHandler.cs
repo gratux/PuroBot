@@ -7,7 +7,6 @@ using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using PuroBot.Config;
 using PuroBot.Services;
-using PuroBot.StaticServices;
 
 namespace PuroBot.Handlers
 {
@@ -26,9 +25,8 @@ namespace PuroBot.Handlers
 			new ServiceCollection()
 				.AddSingleton(_client)
 				.AddSingleton(_commands)
-				.AddSingleton<CommandHandler>()
-				.AddSingleton<VoiceService>()
-				.AddTransient<SpeechService>()
+				.AddSingleton<VoiceConnectionService>()
+				.AddSingleton<SpeechService>()
 				.BuildServiceProvider();
 	}
 
@@ -60,9 +58,29 @@ namespace PuroBot.Handlers
 
 			// Create a number to track where the prefix ends and the command begins
 			var argPos = 0;
+			// get the command prefix to look for, depending on calling context
+			var prefix = message.Channel is SocketGuildChannel guildChannel
+				? GetOrAddServerPrefix(guildChannel.Guild.Id)
+				: '~';
 
-			var guildId = ((SocketGuildChannel) message.Channel).Guild.Id;
+			// Determine if the message is a command based on the prefix
+			if (!(message.HasCharPrefix(prefix, ref argPos) ||
+			      message.HasMentionPrefix(_client.CurrentUser, ref argPos)))
+				return;
 
+			// Create a WebSocket-based command context based on the message
+			var context = new SocketCommandContext(_client, message);
+
+			// Execute the command with the command context we just
+			// created, along with the service provider for precondition checks.
+			await _commands.ExecuteAsync(
+				context,
+				argPos,
+				_services);
+		}
+
+		private static char GetOrAddServerPrefix(ulong guildId)
+		{
 			char prefix;
 			try
 			{
@@ -79,20 +97,7 @@ namespace PuroBot.Handlers
 				});
 			}
 
-			// Determine if the message is a command based on the prefix
-			if (!(message.HasCharPrefix(prefix, ref argPos) ||
-			      message.HasMentionPrefix(_client.CurrentUser, ref argPos)))
-				return;
-
-			// Create a WebSocket-based command context based on the message
-			var context = new SocketCommandContext(_client, message);
-
-			// Execute the command with the command context we just
-			// created, along with the service provider for precondition checks.
-			await _commands.ExecuteAsync(
-				context,
-				argPos,
-				_services);
+			return prefix;
 		}
 	}
 }

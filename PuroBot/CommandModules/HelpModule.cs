@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using PuroBot.Extensions;
+using PuroBot.Services;
 
 namespace PuroBot.CommandModules
 {
@@ -17,45 +20,76 @@ namespace PuroBot.CommandModules
 		[Summary("show commands and their usage")]
 		public async Task HelpCommand()
 		{
-			var builder = new EmbedBuilder();
+			var embed = new EmbedBuilder();
 
-			const string prefix = "~";
+			var guildId = Context.Guild?.Id;
+			var prefix = guildId is null ? '~' : ConfigService.Servers.FirstOrDefault(s => s.Id == guildId).Prefix;
 
-			builder.AddField("Generic Info", "Bot Prefix".AsHeader() + $": {prefix.AsCode()} or bot mention");
+			embed.AddField("Generic Info",
+				"Bot Prefix".AsHeader() + $": {prefix.ToString().AsCode()} or bot mention");
 
 			var allCommands = _command.Modules.SelectMany(m => m.Commands).ToArray();
 			Array.Sort(allCommands,
-				(x, y) => StringComparer.InvariantCulture.Compare(x.Aliases.First(), y.Aliases.First()));
+				(x, y) => StringComparer.InvariantCulture.Compare(x.Aliases[0], y.Aliases[0]));
+
+			var messageContext = Context.Channel switch
+			{
+				IGuildChannel _ => ContextType.Guild,
+				IGroupChannel _ => ContextType.Group,
+				IDMChannel _ => ContextType.DM,
+				_ => throw new ArgumentOutOfRangeException()
+			};
 
 			foreach (var command in allCommands)
-				builder.AddField($"{prefix}{command.Aliases.First()}".AsCode(), await CommandHelp(command));
+			{
+				var displayCommand = true;
 
-			await ReplyAsync(embed: builder.Build());
+				foreach (var precondition in command.Preconditions.Concat(command.Module.Preconditions))
+				{
+					if (precondition is not RequireContextAttribute attr) continue;
+
+					// current context not in required contexts -> don't display
+					if ((attr.Contexts & messageContext) == 0) displayCommand = false;
+				}
+
+				if (displayCommand)
+					embed.AddField($"{prefix}{command.Aliases[0]}".AsCode(), await CommandHelp(command));
+			}
+
+			await ReplyAsync(embed: embed.Build());
 		}
 
 		private static Task<string> CommandHelp(CommandInfo command)
 		{
-			var name = command.Aliases.First();
+			var name = command.Aliases[0];
 			var summary = command.Summary ?? "No summary";
 			var aliases = command.Aliases.Skip(1).ToArray();
 			var parameterInfos = command.Parameters;
-			var parameterDesc =
-				parameterInfos.Select(p =>
-						(p.IsOptional ? "[Optional] " : string.Empty)+
-						$"{p.Name.AsCode()} {("<" + p.Type + ">").AsCode()}" +
-						$"{(string.IsNullOrWhiteSpace(p.Summary) ? string.Empty : ": " + p.Summary.AsItalic())}")
-					.ToArray();
 			var preconditions = command.Preconditions.Concat(command.Module.Preconditions)
-				.Select(p => p.DecodePrecondition())
-				.Distinct().ToArray();
+				.Select(DiscordExtensions.DecodePrecondition).Distinct().ToArray();
 
-			var commandHelp = $"{summary.AsItalic()}\n"
-			                  + "Command".AsHeader() + $": {name.AsCode()}\n"
-			                  + aliases.IncludeIfAny("Aliases".AsHeader(), i => i.AsCode(), ", ")
-			                  + parameterDesc.IncludeIfAny("Parameters".AsHeader(), i => i.AsListItem(), "\n", true)
-			                  + preconditions.IncludeIfAny("Preconditions".AsHeader(), i => i.AsListItem(), "\n", true);
+			var sb = new StringBuilder();
 
-			return Task.FromResult(commandHelp);
+			var parameterDesc = new List<string>();
+			foreach (var p in parameterInfos)
+			{
+				if (p.IsOptional)
+					sb.Append("[Optional] ");
+				sb.AppendFormat("{0} <{1}>", p.Name.AsCode(), p.Type.ToString().AsCode());
+				if (p.Summary != null)
+					sb.AppendFormat(": {0}", p.Summary.AsItalic());
+				parameterDesc.Add(sb.ToString());
+				sb.Clear();
+			}
+
+			if (summary.Length != 0)
+				sb.AppendLine(summary.AsItalic());
+			sb.AppendFormat("{0}: {1}\n", "Command".AsHeader(), name.AsCode());
+			sb.Append(aliases.IncludeIfAny("Aliases".AsHeader(), i => i.AsCode(), ", "));
+			sb.Append(parameterDesc.IncludeIfAny("Parameters".AsHeader(), i => i.AsListItem(), "\n", true));
+			sb.Append(preconditions.IncludeIfAny("Preconditions".AsHeader(), i => i.AsListItem(), "\n", true));
+
+			return Task.FromResult(sb.ToString());
 		}
 	}
 }

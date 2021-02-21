@@ -7,21 +7,23 @@ namespace PuroBot.CommandModules
 {
 	[Group("voice")]
 	[Summary("voice chat-related commands")]
-	public class VoiceModule : ModuleBase<SocketCommandContext>
+	public class VoiceConnectionModule : ModuleBase<SocketCommandContext>
 	{
-		private readonly VoiceService _voice;
+		private readonly VoiceConnectionService _voice;
 
-		public VoiceModule(VoiceService voice) => _voice = voice;
+		public VoiceConnectionModule(VoiceConnectionService voice) => _voice = voice;
 
 		[Command("join")]
 		[Summary("join the current voice channel")]
+		[RequireContext(ContextType.Guild)]
 		public async Task JoinCommand(IVoiceChannel channel = null)
 		{
-			await _voice.JoinChannel(Context, channel);
+			await _voice.JoinOrReuseChannel(Context, channel);
 		}
 
 		[Command("leave")]
 		[Summary("leave the voice channel")]
+		[RequireContext(ContextType.Guild)]
 		public async Task LeaveCommand()
 		{
 			await _voice.LeaveChannel(Context);

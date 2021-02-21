@@ -12,14 +12,15 @@ namespace PuroBot.CommandModules
 	[Group("sfx")]
 	[Summary("play a sound file")]
 	[RequireUserPermission(GuildPermission.Administrator)]
+	[RequireContext(ContextType.Guild)]
 	public class SfxModule : ModuleBase<SocketCommandContext>
 	{
 		private const string BaseAudioPath = "Resources/SpeakAudio/";
 		private const string AudioExt = "pcm";
 		private static readonly SemaphoreSlim Sp = new(1);
-		private readonly VoiceService _voice;
+		private readonly VoiceConnectionService _voice;
 
-		public SfxModule(VoiceService voice) => _voice = voice;
+		public SfxModule(VoiceConnectionService voice) => _voice = voice;
 
 		[Command]
 		[Summary("play a sound effect")]
@@ -41,7 +42,7 @@ namespace PuroBot.CommandModules
 			await Sp.WaitAsync();
 			try
 			{
-				var audioInfo = await _voice.JoinChannel(Context);
+				var audioInfo = await _voice.JoinOrReuseChannel(Context);
 				var audioStream = audioInfo.AudioStream;
 
 				//using var ffmpeg = CreateStream(path);
@@ -63,7 +64,7 @@ namespace PuroBot.CommandModules
 		{
 			var files = new DirectoryInfo(BaseAudioPath).GetFileTree($"*.{AudioExt}")
 				.Skip(1); // skip name of resource directory
-			await ReplyAsync($"Available files are:```\n{string.Join('\n', files)}\n```");
+			await ReplyAsync($"Available files are:{string.Join('\n', files).AsCode(true)}");
 		}
 	}
 }

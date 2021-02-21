@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using PuroBot.Extensions;
 using u32char = System.Int32;
 using u32string = System.Collections.Generic.List<int>;
@@ -74,7 +72,7 @@ namespace PuroBot.Services
 
 		private static readonly u32string Vowels = @"aeiouyäüö".ToUtf32();
 		private static readonly u32string Consonants = @"bcdfghjklmnpqrstvwxz".ToUtf32();
-		private static readonly u32string Alphabet = @"abcdefghijklmnopqrstuvwxyzäüö".ToUtf32();
+		private static readonly u32string Alphabet = @"abcdefghijklmnopqrstuvwxyz".ToUtf32();
 
 		private static readonly Dictionary<u32string, u32string> FinnishAccentTab = new()
 		{
@@ -716,7 +714,7 @@ namespace PuroBot.Services
 					}),
 					new Frame(.26 / 87, new[]
 					{
-						-1.9612, 2.67465, -3.3428, 3.35979, -3.1352, 2.66914, -61.0/32, 61 / 36.4, -1.3039, 3.143 / 3,
+						-1.9612, 2.67465, -3.3428, 3.35979, -3.1352, 2.66914, -61.0 / 32, 61 / 36.4, -1.3039, 3.143 / 3,
 						-1.2591, 1.09495, -4.31 / 3, 1.68517, 9 - 5 / .48, 6 / 4.155, -1.2239, .929525, -.90448,
 						.616796, -.72946, .784038, -.70655, .776582,
 						-.68948, .779152, -.87377, .686287, -.62323, .570786, -.51535, .519798, -.47601, .57461, -.4857,

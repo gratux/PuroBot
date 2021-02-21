@@ -9,31 +9,42 @@ using Discord.Commands;
 
 namespace PuroBot.Services
 {
-	public class VoiceService
+	public class VoiceConnectionService
 	{
 		private static readonly TimeSpan Timeout = new(0, 5, 0);
 		private readonly List<ConnectionInfo> _activeConnections = new();
 
-		public async Task<VoiceInfo> JoinChannel(ICommandContext context, IVoiceChannel channel = null)
+		/// <summary>
+		///     if already connected to a voice channel of the same guild, reuse it
+		///     if not connected in this guild or a voice channel is specified, create a new connection
+		/// </summary>
+		/// <param name="context">the command context</param>
+		/// <param name="channel">the voice channel to be used</param>
+		/// <returns>information about the now connected voice channel</returns>
+		public async Task<VoiceInfo> JoinOrReuseChannel(ICommandContext context, IVoiceChannel channel = null)
 		{
-			// no special channel requested, use channel of calling user 
+			// look for entries for current server
+			var voiceInfo = GetInfo(context.Guild.Id);
+
+			// if no channel is specified, reuse current channel
+			channel ??= voiceInfo?.VoiceChannel;
+
+			// not connected to any channel, use channel of calling user 
 			channel ??= (context.User as IGuildUser)?.VoiceChannel;
 
-			// user not in any channel and no channel specified
-			if (channel == null)
+			// target channel still unknown, can't connect
+			if (channel is null)
 			{
 				await context.Channel.SendMessageAsync(
 					"User must be in a voice channel, or a voice channel must be passed as an argument.");
 				return null;
 			}
 
-			// look for entries for current server
-			var voiceInfo = GetInfo(context.Guild.Id);
 			// server not in list or different channel requested
-			if (voiceInfo == null || voiceInfo.VoiceChannel != channel)
+			if (voiceInfo is null || voiceInfo.VoiceChannel != channel)
 			{
-				var audioStream =
-					(await channel.ConnectAsync()).CreatePCMStream(AudioApplication.Mixed, bufferMillis: 200);
+				var audioClient = await channel.ConnectAsync();
+				var audioStream = audioClient.CreatePCMStream(AudioApplication.Mixed, bufferMillis: 200);
 				voiceInfo = new VoiceInfo(audioStream, channel);
 				Add(context.Guild.Id, voiceInfo);
 			}
@@ -69,9 +80,9 @@ namespace PuroBot.Services
 				// different channel -> reconnect to new channel
 				if (connection.VoiceInfo != channel)
 					connection.VoiceInfo = channel;
-				// same channel -> update last used
+				// same channel -> update timeout
 				else
-					connection.UpdateTime();
+					connection.UpdateTimeout();
 			}
 		}
 
@@ -108,6 +119,7 @@ namespace PuroBot.Services
 			{
 				VoiceChannel?.DisconnectAsync();
 				AudioStream?.Dispose();
+				GC.SuppressFinalize(this);
 			}
 		}
 
@@ -124,11 +136,10 @@ namespace PuroBot.Services
 				VoiceInfo = voiceInfo;
 				_timeoutAction = timeoutAction;
 
-				InitTimeout();
+				// UpdateTimeout();
 			}
 
 			public ulong GuildId { get; }
-			public DateTime LastUsed { get; private set; }
 
 			public VoiceInfo VoiceInfo
 			{
@@ -137,22 +148,17 @@ namespace PuroBot.Services
 				{
 					_voiceInfo?.Dispose();
 					_voiceInfo = value;
-					UpdateTime();
+					UpdateTimeout();
 				}
 			}
 
 			public void Dispose()
 			{
+				_timeoutTimer?.Dispose();
 				_voiceInfo?.Dispose();
 			}
 
-			public void UpdateTime()
-			{
-				LastUsed = DateTime.UtcNow;
-				InitTimeout();
-			}
-
-			private void InitTimeout()
+			public void UpdateTimeout()
 			{
 				_timeoutTimer?.Stop();
 				_timeoutTimer?.Dispose();
@@ -163,7 +169,7 @@ namespace PuroBot.Services
 					AutoReset = false,
 					Enabled = true
 				};
-				_timeoutTimer.Elapsed += (sender, args) => _timeoutAction.Invoke();
+				_timeoutTimer.Elapsed += (_, _) => _timeoutAction.Invoke();
 			}
 		}
 	}

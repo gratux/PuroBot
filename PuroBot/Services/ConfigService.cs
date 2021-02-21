@@ -3,7 +3,7 @@ using System.IO;
 using System.Xml.Serialization;
 using PuroBot.Config;
 
-namespace PuroBot.StaticServices
+namespace PuroBot.Services
 {
 	public static class ConfigService
 	{
@@ -25,7 +25,7 @@ namespace PuroBot.StaticServices
 			private set
 			{
 				_servers = value;
-				_servers.CollectionChanged += (sender, args) => Save();
+				_servers.CollectionChanged += (_, _) => Save();
 			}
 		}
 

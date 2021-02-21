@@ -1,13 +1,16 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using PuroBot.StaticServices;
+using PuroBot.Extensions;
+using PuroBot.Services;
 
 namespace PuroBot.CommandModules
 {
 	[Summary("commands for server administration")]
 	[RequireUserPermission(GuildPermission.Administrator)]
+	[RequireContext(ContextType.Guild)]
 	public class AdminModule : ModuleBase<SocketCommandContext>
 	{
 		[Command("clear")]
@@ -20,10 +23,10 @@ namespace PuroBot.CommandModules
 			var messages = (await Context.Channel.GetMessagesAsync(count).FlattenAsync()).ToArray();
 			(Context.Channel as ITextChannel)?.DeleteMessagesAsync(messages);
 
-			var responseTask = ReplyAsync($"Deleted {messages.Length} message{(messages.Length != 1 ? "s" : "")}");
-			await responseTask;
-			await Task.Delay(5000);
-			await responseTask.Result.DeleteAsync();
+			await DiscordExtensions.SendTemporary(
+				$"Deleted {messages.Length} message{(messages.Length != 1 ? "s" : "")}",
+				TimeSpan.FromSeconds(5),
+				async msg => await ReplyAsync(msg));
 		}
 
 		[Command("setpfx")]

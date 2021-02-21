@@ -6,12 +6,12 @@ namespace PuroBot.Extensions
 {
 	public static class CollectionExtensions
 	{
-		public static IEnumerable<T[]> Partition<T>(this IEnumerable<T> list, int chunkSize = 5)
+		public static async IAsyncEnumerable<T[]> Partition<T>(this IAsyncEnumerable<T> list, int chunkSize = 5)
 		{
-			using var enumerator = list.GetEnumerator();
+			await using var enumerator = list.GetAsyncEnumerator();
 			var chunk = new List<T>();
 
-			for (var i = 0; enumerator.MoveNext(); i++)
+			for (var i = 0; await enumerator.MoveNextAsync(); i++)
 			{
 				chunk.Add(enumerator.Current);
 				if ((i + 1) % chunkSize != 0) continue;

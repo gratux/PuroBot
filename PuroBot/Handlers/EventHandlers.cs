@@ -2,8 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
-using PuroBot.StaticServices;
+using PuroBot.Services;
 
 namespace PuroBot.Handlers
 {
@@ -14,8 +13,8 @@ namespace PuroBot.Handlers
 			if (result.IsSuccess)
 			{
 				if (info.IsSpecified) // if possible, log executed command
-					await LoggingService.LogAsync(new LogMessage(LogSeverity.Info, "command",
-						$"{info.Value.Name} executed successfully"));
+					await LoggingService.Log(LogSeverity.Info, "command",
+						$"{info.Value.Name} executed successfully");
 				return;
 			}
 
@@ -38,17 +37,11 @@ namespace PuroBot.Handlers
 				default:
 					await context.Message.ReplyAsync(result.ErrorReason);
 					if (info.IsSpecified)
-						await LoggingService.LogAsync(new LogMessage(LogSeverity.Error, "command",
+						await LoggingService.Log(LogSeverity.Error, "command",
 							$"{info.Value.Name} errored",
-							new CommandException(info.Value, context, new Exception(result.ErrorReason))));
+							new CommandException(info.Value, context, new Exception(result.ErrorReason)));
 					break;
 			}
-		}
-
-		public static Task ClientReadyHandler(DiscordSocketClient client)
-		{
-			client.SetGameAsync("~help", type: ActivityType.CustomStatus);
-			return Task.CompletedTask;
 		}
 	}
 }

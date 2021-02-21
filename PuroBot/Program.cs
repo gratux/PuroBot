@@ -3,7 +3,7 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using PuroBot.Handlers;
-using PuroBot.StaticServices;
+using PuroBot.Services;
 
 namespace PuroBot
 {
@@ -23,7 +23,6 @@ namespace PuroBot
 			{
 				ExclusiveBulkDelete = true
 			});
-			client.Ready += () => EventHandlers.ClientReadyHandler(client);
 			var commands = new CommandService(new CommandServiceConfig
 			{
 				CaseSensitiveCommands = false,
