@@ -39,5 +39,11 @@ namespace PuroBot.Extensions
 				yield return symbol + filename;
 			}
 		}
+
+		public static byte Scale(this byte value, double min, double max, double minScaled, double maxScaled)
+		{
+			var sValue = (sbyte) value;
+			return (byte) (minScaled + (sValue - min) / (max - min) * (maxScaled - minScaled));
+		}
 	}
 }

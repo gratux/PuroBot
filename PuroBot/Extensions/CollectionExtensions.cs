@@ -57,5 +57,10 @@ namespace PuroBot.Extensions
 			src.RemoveRange(startIndex, count);
 			src.InsertRange(startIndex, replacement);
 		}
+
+		public static IEnumerable<byte> NormalizeAudio(this IEnumerable<byte> src, double relativeVolume = 0.7)
+		{
+			return src.Select(v => v.Scale(sbyte.MinValue, sbyte.MaxValue, relativeVolume * sbyte.MinValue, relativeVolume * sbyte.MaxValue));
+		}
 	}
 }

@@ -411,7 +411,9 @@ retry:;
         slice.push_back( std::clamp(sample, -32768.f, 32767.f)*volume );
         slice.push_back( std::clamp(sample, -32768.f, 32767.f)*volume );
     }
-    if(broken) { for(auto& f: bp) f=0; slice.clear(); ++retries;
+    if(broken) { for(auto& f: bp) f=0;
+                 slice.clear();
+                 ++retries;
                  hyst = -1;
                  average = 0;
                  if(retries < 10) goto retry; }
@@ -442,7 +444,7 @@ int main()
     float voice_base_level  = 1.0f;
     for(auto e: phonemes)
     {
-        auto i = records.find(e.record);
+        auto i = records.find(e.record); // specific record map item
         if(i == records.end())
             if(i = records.find(U'-'); i == records.end())
                 { fprintf(stderr, "Didn't find %d\n", e.record); continue; }
@@ -452,26 +454,26 @@ int main()
         voice_base_level  = std::clamp(voice_base_level  + float(drand48() - 0.5) * 0.02f, 0.7f, 1.0f);
 
         float    frame_time = rate * frame_time_factor;
-        const auto& alts    = std::get<2>(i->second);
+        const auto& alts    = std::get<2>(i->second); // record map -> record -> record.data []
         unsigned n_samples  = e.n_frames * frame_time;
 
-        float breath = breath_base_level + (1.f-breath_base_level) * (1.f - std::get<1>(i->second));
-        float buzz   = std::get<1>(i->second) * voice_base_level;
+        float breath = breath_base_level + (1.f-breath_base_level) * (1.f - std::get<1>(i->second) /*voice*/);
+        float buzz   = std::get<1>(i->second)/*voice*/ * voice_base_level;
         float pitch  = e.relative_pitch * token_pitch;
 
         auto do_synth = [&](const auto& f, unsigned n) { synth(f, volume, breath, buzz, pitch, rate, n); return n; };
-        switch(std::get<0>(i->second))
+        switch(std::get<0>(i->second)/*mode*/)
         {
             case record_modes::choose_randomly:
-                do_synth(alts[std::rand() % alts.size()], n_samples);
+                do_synth(alts[std::rand() % alts.size()]/*data*/, n_samples);
                 break;
             case record_modes::play_in_sequence:
-                for(std::size_t a=0; a<alts.size(); ++a)
-                    do_synth(alts[a], (a+1)*n_samples/alts.size() - (a+0)*n_samples/alts.size());
+                for(std::size_t a=0; a<alts.size()/*data*/; ++a)
+                    do_synth(alts[a], (a+1)*n_samples/alts.size()/*data*/ - (a+0)*n_samples/alts.size());
                 break;
             case record_modes::trill:
                 for(unsigned n=0; n_samples > 0; ++n)
-                    n_samples -= do_synth(alts[n % alts.size()], std::min(n_samples, unsigned(frame_time * 1.5f)));
+                    n_samples -= do_synth(alts[n % alts.size()]/*data*/, std::min(n_samples, unsigned(frame_time * 1.5f)));
         }
     }
 

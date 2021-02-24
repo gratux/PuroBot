@@ -1,7 +1,9 @@
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using PuroBot.Extensions;
 using PuroBot.Services;
 
 namespace PuroBot.CommandModules
@@ -31,7 +33,7 @@ namespace PuroBot.CommandModules
 				if (voiceInfo is null) //failed to connect
 					return;
 				var pcm = await _speech.SynthesizeMessageAsync(message);
-				await voiceInfo.AudioStream.WriteAsync(pcm);
+				await voiceInfo.AudioStream.WriteAsync(pcm.NormalizeAudio().ToArray());
 			}
 			finally
 			{

@@ -34,9 +34,9 @@ namespace PuroBot.CommandModules
 
 			var messageContext = Context.Channel switch
 			{
-				IGuildChannel _ => ContextType.Guild,
-				IGroupChannel _ => ContextType.Group,
-				IDMChannel _ => ContextType.DM,
+				IGuildChannel => ContextType.Guild,
+				IGroupChannel => ContextType.Group,
+				IDMChannel => ContextType.DM,
 				_ => throw new ArgumentOutOfRangeException()
 			};
 
@@ -66,6 +66,7 @@ namespace PuroBot.CommandModules
 			var aliases = command.Aliases.Skip(1).ToArray();
 			var parameterInfos = command.Parameters;
 			var preconditions = command.Preconditions.Concat(command.Module.Preconditions)
+				.Where(p=>p is not RequireContextAttribute)
 				.Select(DiscordExtensions.DecodePrecondition).Distinct().ToArray();
 
 			var sb = new StringBuilder();

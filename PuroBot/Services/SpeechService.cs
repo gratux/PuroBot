@@ -16,7 +16,6 @@ namespace PuroBot.Services
 	public partial class SpeechService
 	{
 		private const int SampleRate = 48000;
-		private const int MaxOrder = 256;
 
 		private const double FrameTimeFactor = 0.01d;
 		private const double TokenPitch = 90.0d;
@@ -26,15 +25,6 @@ namespace PuroBot.Services
 
 		private static readonly Random Rnd = new();
 
-		private readonly List<byte> _audio = new();
-
-		private readonly Dictionary<double, double> _last = new();
-		private double[] _bp;
-		private int _count;
-		private int _offset;
-
-		private double _sampleAverage;
-
 		private static bool IsVowel(u32char c) => Vowels.Contains(c);
 
 		private static bool IsAlphabet(u32char c) => Alphabet.Contains(c);
@@ -43,12 +33,12 @@ namespace PuroBot.Services
 
 		public async Task<byte[]> SynthesizeMessageAsync(string message)
 		{
-			var phonemes = await PhonemizeAsync(message);
+			var phonemes = PhonemizeAsync(message);
 			var audio = await Vocalize(phonemes);
 			return audio.ToArray();
 		}
 
-		private async Task<IEnumerable<byte>> Vocalize(List<ProsodyElement> phonemes)
+		private async Task<IEnumerable<byte>> Vocalize(IAsyncEnumerable<ProsodyElement> phonemes)
 		{
 			InitVocalize();
 
@@ -58,7 +48,9 @@ namespace PuroBot.Services
 			var breathBaseLevel = BreathBaseLevel;
 			var voiceBaseLevel = VoiceBaseLevel;
 
-			foreach (var e in phonemes)
+			var audio = new List<byte>();
+
+			await foreach (var e in phonemes)
 			{
 				if (!Records.TryGetValue(e.Record, out var record) && !Records.TryGetValue('-', out record))
 				{
@@ -72,7 +64,7 @@ namespace PuroBot.Services
 				voiceBaseLevel = Math.Clamp(voiceBaseLevel + (Rnd.NextDouble() - 0.5d) * 0.02d, 0.7d, 1.0d);
 
 				var frameTime = SampleRate * frameTimeFactor;
-				var alts = record.Data;
+				var frames = record.Data;
 				var samplesCount = (int) (e.FramesCount * frameTime);
 
 				var breath = breathBaseLevel + (1.0d - breathBaseLevel) * (1.0d * record.Voice);
@@ -82,125 +74,139 @@ namespace PuroBot.Services
 				var doSynthFunc =
 					new Func<Frame, int, int>((frame, count) =>
 					{
-						_audio.AddRange(Synthesize(frame, volume, breath, buzz, pitch, SampleRate, count));
+						audio.AddRange(Synthesize(frame, volume, breath, buzz, pitch, SampleRate, count));
 						return count;
 					});
 
 				switch (record.Mode)
 				{
 					case RecordModes.ChooseRandomly:
-						doSynthFunc(alts[Rnd.Next() % alts.Length], samplesCount);
+						doSynthFunc(frames[Rnd.Next(frames.Length)], samplesCount);
 						break;
 					case RecordModes.Trill:
 						for (var n = 0; samplesCount > 0; n++)
-							samplesCount -= doSynthFunc(alts[n % alts.Length],
+							samplesCount -= doSynthFunc(frames[n % frames.Length],
 								Math.Min(samplesCount, (int) (frameTime * 1.5d)));
 						break;
 					case RecordModes.PlayInSequence:
-						for (var a = 0; a < alts.Length; a++)
-							doSynthFunc(alts[a],
-								(a + 1) * samplesCount / alts.Length - a * samplesCount / alts.Length);
+						foreach (var frame in frames)
+							doSynthFunc(frame, samplesCount / frames.Length);
 						break;
 					default:
-						throw new ArgumentOutOfRangeException();
+						throw new IndexOutOfRangeException(nameof(record.Mode));
 				}
 			}
 
-			return _audio;
+			return audio;
 		}
 
 		private void InitVocalize()
 		{
 			_sampleAverage = 0;
-			_bp = Enumerable.Repeat(0.0d, MaxOrder).ToArray();
-			_offset = 0;
+
 			_count = 0;
-			_audio.Clear();
+			_offset = 0;
+			Array.Clear(_bp, 0, _bp.Length);
+
+			_last.Clear();
 		}
+
+		// 'static'
+		private double _sampleAverage;
+		private double _pGain, _pPitch, _pBreath, _pBuzz;
+
+		//buffer stuff
+		private int _count, _offset;
+		private readonly double[] _bp = new double[MaxOrder];
+		private const int MaxOrder = 256;
+
+		// hysteresis storage
+		private readonly Dictionary<double, double> _last = new();
 
 		private IEnumerable<byte> Synthesize(Frame frame, double volume, double breath, double buzz, double pitch,
 			uint sampleRate,
-			int count)
+			int nSamples)
 		{
-			var coefficients = new double[MaxOrder];
-			frame.Coefficients.CopyTo(coefficients, 0);
+			_pGain = frame.Gain;
+			_pPitch = pitch;
+			_pBreath = breath;
+			_pBuzz = buzz;
 
-			var pGain = frame.Gain;
-			var pPitch = pitch;
-			var pBreath = breath;
-			var pBuzz = buzz;
-
-			var hysteresis = -10;
-
+			var hyst = -10;
 			var slice = new List<double>();
-			uint retriesBroken = 0, retriesClipping = 0;
-			double amplitude = 0, amplitudeLimit = 7000;
+			uint retries = 0, retries2 = 0;
+			var amplitude = 0d;
+			var amplitudeLimit = 7000d;
 
-			bool retry;
-			do
+			while (true)
 			{
-				//TODO: does this work?
-				retry = false;
-				slice.Clear();
+				var broken = false;
+				var clipping = false;
 
-				for (var n = 0; n < count; n++)
+				for (var n = 0; n < nSamples; n++)
 				{
-					pitch = GetWithHysteresis(pPitch, -10);
-					var gain = GetWithHysteresis(pGain, hysteresis);
-					hysteresis = (int) -Math.Clamp(8.0d + Math.Log10(gain), 1.0d, 6.0d);
+					pitch = GetWithHysteresis(_pPitch, -10);
+					var gain = GetWithHysteresis(_pGain, hyst);
+					hyst = (int) -Math.Clamp(8d + Math.Log10(gain), 2d, 6d);
 
 					_count++;
 					var w = (_count %= (int) (sampleRate / pitch)) / (sampleRate / pitch);
-					var f = (-0.5d + Rnd.NextDouble()) * GetWithHysteresis(pBreath, -12)
-					        + (Math.Pow(2, w) - 1 / (1 + w)) * GetWithHysteresis(pBuzz, -12);
-					// if (!double.IsFinite(f))
-					// 	throw new Exception($"{nameof(f)} is not finite");
+					var f = (Rnd.NextDouble() - .5) * GetWithHysteresis(_pBreath, -12)
+					        + (Math.Pow(2, w) - 1 / (1 + w)) * GetWithHysteresis(_pBuzz, -12);
+					if (!double.IsFinite(f))
+						throw new Exception("f is not finite");
 
 					var sum = f;
 					for (var j = 0; j < frame.Coefficients.Length; j++)
-						sum -= GetWithHysteresis(coefficients[j], hysteresis) *
+						sum -= GetWithHysteresis(frame.Coefficients[j], hyst) *
 						       _bp[(_offset + MaxOrder - j) % MaxOrder];
 
 					if (!double.IsFinite(sum) || double.IsNaN(sum))
 					{
+						broken = true;
 						sum = 0;
-
-						retriesBroken++;
-						hysteresis = -1;
-						_sampleAverage = 0;
-
-						if (retriesBroken < 10)
-						{
-							retry = true;
-							break;
-						}
 					}
 
 					_offset++;
 					var r = _bp[_offset %= MaxOrder] = sum;
-					var sample = r * Math.Sqrt(GetWithHysteresis(pGain, hysteresis)) * (Int16.MaxValue + 1);
 
-					_sampleAverage = _sampleAverage * 0.9993d + sample * (1 - 0.9993d);
+					var sample = r * Math.Sqrt(GetWithHysteresis(_pGain, hyst)) * Int16.MaxValue;
+
+					_sampleAverage = _sampleAverage * .9993d + sample * (1 - .9993d);
 					sample -= _sampleAverage;
-					amplitude = n == 0 ? Math.Abs(sample) : amplitude * 0.99d + Math.Abs(sample) * 0.01d;
+					amplitude = n == 0 ? Math.Abs(sample) : amplitude * .99d + Math.Abs(sample) * .01d;
 					if (n == 100 && amplitude > amplitudeLimit)
 					{
-						retriesClipping++;
+						retries2++;
 						amplitudeLimit += 500;
-
-						if (retriesClipping < 100)
-						{
-							retry = true;
-							break;
-						}
+						slice.Clear();
+						if (retries2 < 100)
+							clipping = true;
+						//clippingRetries maximum reached, compromise by generating clipping sample
 					}
 
-					slice.Add(Math.Clamp(sample, Int16.MinValue, Int16.MaxValue));
-					slice.Add(Math.Clamp(sample, Int16.MinValue, Int16.MaxValue));
+					slice.Add(Math.Clamp(sample, Int16.MinValue, Int16.MaxValue) * volume);
+					slice.Add(Math.Clamp(sample, Int16.MinValue, Int16.MaxValue) * volume);
 				}
-			} while (retry);
 
-			return slice.SelectMany(BitConverter.GetBytes);
+				if (clipping) // retry if clipping
+					continue;
+
+				if (broken) // retry if generator broken
+				{
+					Array.Clear(_bp, 0, _bp.Length);
+					slice.Clear();
+					retries++;
+					hyst = -1;
+					_sampleAverage = 0;
+					if (retries < 10) // if maximum not reached, retry from beginning
+						continue;
+				}
+
+				break; // no retry triggered or maximum reached
+			}
+
+			return slice.SelectMany(s => BitConverter.GetBytes((short) s));
 		}
 
 		private double GetWithHysteresis(double value, int speed)
@@ -214,26 +220,29 @@ namespace PuroBot.Services
 
 			var newFac = Math.Pow(2, speed);
 			var oldFac = 1 - newFac;
+
 			var oldValue = _last[value];
 			return _last[value] = oldValue * oldFac + newValue * newFac;
 		}
 
-		private static async Task<List<ProsodyElement>> PhonemizeAsync(string text)
+		private static async IAsyncEnumerable<ProsodyElement> PhonemizeAsync(string text)
 		{
 			var input = await CanonizeAsync(text);
-
 			var syllableId = new int[input.Count];
 
 			var currentSyllable = 1;
-			for (var position = 0; position < input.Count; currentSyllable++)
+			for (var position = 0;
+				position < input.Count;
+				currentSyllable++)
 				position = AssignSyllableId(position, input, syllableId, ref currentSyllable);
-
 			var pitchCurve = Enumerable.Repeat(1.0d, currentSyllable).ToList();
 			var begin = 0;
 			var end = syllableId.Length - 1;
-			double first = 1.0d, last = 1.0d, midPos = 1.0d;
 
-			for (var i = 0; i < input.Count; i++)
+			double first = 1.0d, last = 1.0d, midPos = 1.0d;
+			for (var i = 0;
+				i < input.Count;
+				i++)
 			{
 				if (input[i] == '<' || input[i] == '|')
 				{
@@ -259,7 +268,6 @@ namespace PuroBot.Services
 				pitchCurve[syllableId[i]] = first + (last - first) * fltPos;
 			}
 
-			var elements = new List<ProsodyElement>();
 			for (var pos = 0; pos < input.Count; pos++)
 			{
 				var endPos = pos;
@@ -276,13 +284,14 @@ namespace PuroBot.Services
 				                        pos > 0 && IsVowel(input[pos - 1]);
 
 				if (Maps.ContainsKey(input[pos]))
-					elements.AddRange(Maps[input[pos]].Select(e => new ProsodyElement
+					foreach (var element in Maps[input[pos]])
+						yield return new ProsodyElement
 						(
-							e.Character,
-							e.Length + e.RepeatedLength * repLenFunc() + (surroundedByVowel ? e.SurroundedLength : 0),
-							pitchCurve[syllableId[pos]]
-						)
-					));
+							record: element.Character,
+							framesCount: element.Length + element.RepeatedLength * repLenFunc() +
+							             (surroundedByVowel ? element.SurroundedLength : 0),
+							relativePitch: pitchCurve[syllableId[pos]]
+						);
 				else
 					switch (input[pos])
 					{
@@ -295,8 +304,8 @@ namespace PuroBot.Services
 							// and the next one is a vowel as well, add a glottal stop.
 							if (pos > 0 && IsVowel(input[pos - 1]) && IsVowel(nextElement) || input[pos] != ' ')
 							{
-								elements.Add(new ProsodyElement('-', 3, pitchCurve[syllableId[pos]]));
-								elements.Add(new ProsodyElement('q', 1, pitchCurve[syllableId[pos]]));
+								yield return new ProsodyElement('-', 3, pitchCurve[syllableId[pos]]);
+								yield return new ProsodyElement('q', 1, pitchCurve[syllableId[pos]]);
 							}
 
 							break;
@@ -314,8 +323,6 @@ namespace PuroBot.Services
 
 				pos = endPos;
 			}
-
-			return elements;
 		}
 
 		private static int AssignSyllableId(int position, u32string input, int[] syllableId, ref int currentSyllable)
@@ -392,7 +399,7 @@ namespace PuroBot.Services
 			return position;
 		}
 
-		//TODO: refactor to reduce method complexity
+//TODO: refactor to reduce method complexity
 		private static bool MatchesRulePattern(u32string pattern, IEnumerator<u32char> textEnumerator)
 		{
 			//TODO: compare strings as strings instead of each char separately
