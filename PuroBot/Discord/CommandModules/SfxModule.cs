@@ -4,10 +4,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using PuroBot.Discord.Services;
 using PuroBot.Extensions;
-using PuroBot.Services;
 
-namespace PuroBot.CommandModules
+namespace PuroBot.Discord.CommandModules
 {
 	[Group("sfx")]
 	[Summary("play a sound file")]

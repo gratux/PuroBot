@@ -7,7 +7,7 @@ using Discord;
 using Discord.Audio;
 using Discord.Commands;
 
-namespace PuroBot.Services
+namespace PuroBot.Discord.Services
 {
 	public class VoiceConnectionService
 	{

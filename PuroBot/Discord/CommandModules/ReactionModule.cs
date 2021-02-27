@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Discord.Commands;
 using ImageMagick;
 
-namespace PuroBot.CommandModules
+namespace PuroBot.Discord.CommandModules
 {
 	public class ReactionModule : ModuleBase<SocketCommandContext>
 	{

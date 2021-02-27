@@ -3,10 +3,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using PuroBot.Discord.Services;
 using PuroBot.Extensions;
-using PuroBot.Services;
 
-namespace PuroBot.CommandModules
+namespace PuroBot.Discord.CommandModules
 {
 	[RequireUserPermission(GuildPermission.Administrator)]
 	[RequireContext(ContextType.Guild)]
@@ -32,7 +32,7 @@ namespace PuroBot.CommandModules
 				var voiceInfo = await _voice.JoinOrReuseChannel(Context);
 				if (voiceInfo is null) //failed to connect
 					return;
-				var pcm = await _speech.SynthesizeMessageAsync(message);
+				var pcm = _speech.SynthesizeMessageAsync(message);
 				await voiceInfo.AudioStream.WriteAsync(pcm.NormalizeAudio().ToArray());
 			}
 			finally

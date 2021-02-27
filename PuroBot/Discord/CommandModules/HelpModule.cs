@@ -5,10 +5,10 @@ using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using PuroBot.Discord.Services;
 using PuroBot.Extensions;
-using PuroBot.Services;
 
-namespace PuroBot.CommandModules
+namespace PuroBot.Discord.CommandModules
 {
 	public class HelpModule : ModuleBase<SocketCommandContext>
 	{
@@ -66,7 +66,7 @@ namespace PuroBot.CommandModules
 			var aliases = command.Aliases.Skip(1).ToArray();
 			var parameterInfos = command.Parameters;
 			var preconditions = command.Preconditions.Concat(command.Module.Preconditions)
-				.Where(p=>p is not RequireContextAttribute)
+				.Where(p => p is not RequireContextAttribute)
 				.Select(DiscordExtensions.DecodePrecondition).Distinct().ToArray();
 
 			var sb = new StringBuilder();

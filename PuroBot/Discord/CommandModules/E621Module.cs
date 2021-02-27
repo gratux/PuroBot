@@ -6,7 +6,7 @@ using Discord.Commands;
 using PuroBot.Extensions;
 using SodiumDL;
 
-namespace PuroBot.CommandModules
+namespace PuroBot.Discord.CommandModules
 {
 	public class E621Module : ModuleBase<SocketCommandContext>
 	{

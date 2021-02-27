@@ -2,8 +2,8 @@
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using PuroBot.Discord.Services;
 using PuroBot.Handlers;
-using PuroBot.Services;
 
 namespace PuroBot
 {

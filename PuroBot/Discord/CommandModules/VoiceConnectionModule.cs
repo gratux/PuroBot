@@ -1,9 +1,9 @@
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using PuroBot.Services;
+using PuroBot.Discord.Services;
 
-namespace PuroBot.CommandModules
+namespace PuroBot.Discord.CommandModules
 {
 	[Group("voice")]
 	[Summary("voice chat-related commands")]

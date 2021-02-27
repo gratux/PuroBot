@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
-
 namespace PuroBot.Extensions
 {
 	public static class StringExtensions
@@ -15,21 +12,5 @@ namespace PuroBot.Extensions
 			block ? $"\n```{language}\n{text}\n```\n" : $"`{text}`";
 
 		public static string AsListItem(this string text) => $"• {text}";
-
-		public static List<int> ToUtf32(this string s)
-		{
-			var converted = new List<int>();
-			for (var i = 0; i < s.Length; i++)
-			{
-				var unicodeCodePoint = char.ConvertToUtf32(s, i);
-				if (unicodeCodePoint > 0xffff) i++;
-
-				converted.Add(unicodeCodePoint);
-			}
-
-			return converted;
-		}
-
-		public static string ToUtf8(this IEnumerable<int> s) => string.Concat(s.Select(char.ConvertFromUtf32));
 	}
 }

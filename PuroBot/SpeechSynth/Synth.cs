@@ -1,61 +1,60 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using Discord;
 using PuroBot.Extensions;
-using u32char = System.Int32;
-using u32string = System.Collections.Generic.List<int>;
+using PuroBot.Logger;
+using static PuroBot.SpeechSynth.SynthData;
+using static PuroBot.SpeechSynth.Helpers;
 
-// ReSharper disable BuiltInTypeReferenceStyle
-
-namespace PuroBot.Services
+namespace PuroBot.SpeechSynth
 {
 	// bisqwit's speech synthesizer, ported to c#
-	public partial class SpeechService
+	public class Synth
 	{
-		private const int SampleRate = 48000;
+		private const int SampleRate = 48000; //Hz
 
 		private const double FrameTimeFactor = 0.01d;
-		private const double TokenPitch = 90.0d;
+		private const double TokenPitch = 100.0d;
 		private const double Volume = 0.7d;
 		private const double BreathBaseLevel = 0.4d;
 		private const double VoiceBaseLevel = 1.0d;
+		private const int MaxOrder = 256;
 
+		private static readonly ILogger Logger = new DefaultLogger();
 		private static readonly Random Rnd = new();
 
-		private static bool IsVowel(u32char c) => Vowels.Contains(c);
+		private readonly double[] _bp = new double[MaxOrder];
+		private int _count, _offset;
 
-		private static bool IsAlphabet(u32char c) => Alphabet.Contains(c);
+		private readonly Dictionary<double,double> _last = new();
 
-		private static bool IsConsonant(u32char c) => Consonants.Contains(c);
+		private double _pGain, _pPitch, _pBreath, _pBuzz;
+		private double _sampleAverage;
 
-		public async Task<byte[]> SynthesizeMessageAsync(string message)
+		public IEnumerable<byte> SynthesizeText(string message)
 		{
-			var phonemes = PhonemizeAsync(message);
-			var audio = await Vocalize(phonemes);
-			return audio.ToArray();
+			var phonemes = Phonemize(message).ToList();
+			var audio = VocalizePhonemes(phonemes).ToList();
+			return audio;
 		}
 
-		private async Task<IEnumerable<byte>> Vocalize(IAsyncEnumerable<ProsodyElement> phonemes)
+		private IEnumerable<byte> VocalizePhonemes(IEnumerable<ProsodyElement> phonemes)
 		{
 			InitVocalize();
 
-			var frameTimeFactor = FrameTimeFactor;
+			const double frameTimeFactor = FrameTimeFactor;
 			var tokenPitch = TokenPitch;
-			var volume = Volume;
+			const double volume = Volume;
 			var breathBaseLevel = BreathBaseLevel;
 			var voiceBaseLevel = VoiceBaseLevel;
 
 			var audio = new List<byte>();
 
-			await foreach (var e in phonemes)
+			foreach (var e in phonemes)
 			{
-				if (!Records.TryGetValue(e.Record, out var record) && !Records.TryGetValue('-', out record))
+				if (!Records.TryGetValue(e.RecordChar, out var record) && !Records.TryGetValue('-', out record))
 				{
-					await LoggingService.Log(LogSeverity.Warning, nameof(SpeechService),
-						$"Didn't find {char.ConvertFromUtf32(e.Record)}");
+					Logger.LogError($"Didn't find {e.RecordChar}");
 					continue;
 				}
 
@@ -63,7 +62,7 @@ namespace PuroBot.Services
 				breathBaseLevel = Math.Clamp(breathBaseLevel + (Rnd.NextDouble() - 0.5d) * 0.02d, 0.1d, 1.0d);
 				voiceBaseLevel = Math.Clamp(voiceBaseLevel + (Rnd.NextDouble() - 0.5d) * 0.02d, 0.7d, 1.0d);
 
-				var frameTime = SampleRate * frameTimeFactor;
+				const double frameTime = SampleRate * frameTimeFactor;
 				var frames = record.Data;
 				var samplesCount = (int) (e.FramesCount * frameTime);
 
@@ -71,29 +70,26 @@ namespace PuroBot.Services
 				var buzz = record.Voice * voiceBaseLevel;
 				var pitch = e.RelativePitch * tokenPitch;
 
-				var doSynthFunc =
-					new Func<Frame, int, int>((frame, count) =>
-					{
-						audio.AddRange(Synthesize(frame, volume, breath, buzz, pitch, SampleRate, count));
-						return count;
-					});
+				var doSynth = new Func<Frame, int, int>((frame, count) =>
+				{
+					audio.AddRange(Synthesize(frame, volume, breath, buzz, pitch, SampleRate, count));
+					return count;
+				});
 
 				switch (record.Mode)
 				{
 					case RecordModes.ChooseRandomly:
-						doSynthFunc(frames[Rnd.Next(frames.Length)], samplesCount);
+						doSynth(frames[Rnd.Next(frames.Length)], samplesCount);
 						break;
 					case RecordModes.Trill:
 						for (var n = 0; samplesCount > 0; n++)
-							samplesCount -= doSynthFunc(frames[n % frames.Length],
+							samplesCount -= doSynth(frames[n % frames.Length],
 								Math.Min(samplesCount, (int) (frameTime * 1.5d)));
 						break;
 					case RecordModes.PlayInSequence:
 						foreach (var frame in frames)
-							doSynthFunc(frame, samplesCount / frames.Length);
+							doSynth(frame, samplesCount / frames.Length);
 						break;
-					default:
-						throw new IndexOutOfRangeException(nameof(record.Mode));
 				}
 			}
 
@@ -111,18 +107,6 @@ namespace PuroBot.Services
 			_last.Clear();
 		}
 
-		// 'static'
-		private double _sampleAverage;
-		private double _pGain, _pPitch, _pBreath, _pBuzz;
-
-		//buffer stuff
-		private int _count, _offset;
-		private readonly double[] _bp = new double[MaxOrder];
-		private const int MaxOrder = 256;
-
-		// hysteresis storage
-		private readonly Dictionary<double, double> _last = new();
-
 		private IEnumerable<byte> Synthesize(Frame frame, double volume, double breath, double buzz, double pitch,
 			uint sampleRate,
 			int nSamples)
@@ -132,7 +116,7 @@ namespace PuroBot.Services
 			_pBreath = breath;
 			_pBuzz = buzz;
 
-			var hyst = -10;
+			var hysteresis = -10;
 			var slice = new List<double>();
 			uint retries = 0, retries2 = 0;
 			var amplitude = 0d;
@@ -146,8 +130,8 @@ namespace PuroBot.Services
 				for (var n = 0; n < nSamples; n++)
 				{
 					pitch = GetWithHysteresis(_pPitch, -10);
-					var gain = GetWithHysteresis(_pGain, hyst);
-					hyst = (int) -Math.Clamp(8d + Math.Log10(gain), 2d, 6d);
+					var gain = GetWithHysteresis(_pGain, hysteresis);
+					hysteresis = (int) -Math.Clamp(8d + Math.Log10(gain), 2d, 6d);
 
 					_count++;
 					var w = (_count %= (int) (sampleRate / pitch)) / (sampleRate / pitch);
@@ -158,7 +142,7 @@ namespace PuroBot.Services
 
 					var sum = f;
 					for (var j = 0; j < frame.Coefficients.Length; j++)
-						sum -= GetWithHysteresis(frame.Coefficients[j], hyst) *
+						sum -= GetWithHysteresis(frame.Coefficients[j], hysteresis) *
 						       _bp[(_offset + MaxOrder - j) % MaxOrder];
 
 					if (!double.IsFinite(sum) || double.IsNaN(sum))
@@ -170,7 +154,7 @@ namespace PuroBot.Services
 					_offset++;
 					var r = _bp[_offset %= MaxOrder] = sum;
 
-					var sample = r * Math.Sqrt(GetWithHysteresis(_pGain, hyst)) * Int16.MaxValue;
+					var sample = r * Math.Sqrt(GetWithHysteresis(_pGain, hysteresis)) * short.MaxValue;
 
 					_sampleAverage = _sampleAverage * .9993d + sample * (1 - .9993d);
 					sample -= _sampleAverage;
@@ -185,8 +169,8 @@ namespace PuroBot.Services
 						//clippingRetries maximum reached, compromise by generating clipping sample
 					}
 
-					slice.Add(Math.Clamp(sample, Int16.MinValue, Int16.MaxValue) * volume);
-					slice.Add(Math.Clamp(sample, Int16.MinValue, Int16.MaxValue) * volume);
+					slice.Add(Math.Clamp(sample, short.MinValue, short.MaxValue) * volume);
+					slice.Add(Math.Clamp(sample, short.MinValue, short.MaxValue) * volume);
 				}
 
 				if (clipping) // retry if clipping
@@ -197,7 +181,7 @@ namespace PuroBot.Services
 					Array.Clear(_bp, 0, _bp.Length);
 					slice.Clear();
 					retries++;
-					hyst = -1;
+					hysteresis = -1;
 					_sampleAverage = 0;
 					if (retries < 10) // if maximum not reached, retry from beginning
 						continue;
@@ -212,7 +196,7 @@ namespace PuroBot.Services
 		private double GetWithHysteresis(double value, int speed)
 		{
 			var newValue = value;
-			if (!_last.ContainsKey(value))
+			if (!_last.TryGetValue(value, out var oldValue))
 			{
 				_last.Add(value, newValue);
 				return newValue;
@@ -220,29 +204,24 @@ namespace PuroBot.Services
 
 			var newFac = Math.Pow(2, speed);
 			var oldFac = 1 - newFac;
-
-			var oldValue = _last[value];
 			return _last[value] = oldValue * oldFac + newValue * newFac;
 		}
 
-		private static async IAsyncEnumerable<ProsodyElement> PhonemizeAsync(string text)
+		private static IEnumerable<ProsodyElement> Phonemize(string text)
 		{
-			var input = await CanonizeAsync(text);
-			var syllableId = new int[input.Count];
+			var input = Canonize(text);
 
+			var syllableId = new int[input.Count];
 			var currentSyllable = 1;
-			for (var position = 0;
-				position < input.Count;
-				currentSyllable++)
+			for (var position = 0; position < input.Count; currentSyllable++)
 				position = AssignSyllableId(position, input, syllableId, ref currentSyllable);
+
 			var pitchCurve = Enumerable.Repeat(1.0d, currentSyllable).ToList();
 			var begin = 0;
 			var end = syllableId.Length - 1;
 
 			double first = 1.0d, last = 1.0d, midPos = 1.0d;
-			for (var i = 0;
-				i < input.Count;
-				i++)
+			for (var i = 0; i < input.Count; i++)
 			{
 				if (input[i] == '<' || input[i] == '|')
 				{
@@ -271,6 +250,8 @@ namespace PuroBot.Services
 			for (var pos = 0; pos < input.Count; pos++)
 			{
 				var endPos = pos;
+
+				//get the length of repeated character chains
 				var repLenFunc = new Func<uint>(() =>
 				{
 					uint r = 0;
@@ -284,23 +265,24 @@ namespace PuroBot.Services
 				                        pos > 0 && IsVowel(input[pos - 1]);
 
 				if (Maps.ContainsKey(input[pos]))
+				{
 					foreach (var element in Maps[input[pos]])
+					{
 						yield return new ProsodyElement
 						(
-							record: element.Character,
-							framesCount: element.Length + element.RepeatedLength * repLenFunc() +
-							             (surroundedByVowel ? element.SurroundedLength : 0),
-							relativePitch: pitchCurve[syllableId[pos]]
+							element.Character,
+							element.Length + element.RepeatedLength * repLenFunc() +
+							(surroundedByVowel ? element.SurroundedLength : 0),
+							pitchCurve[syllableId[pos]]
 						);
+					}
+				}
 				else
+				{
 					switch (input[pos])
 					{
-						case ' ':
-						case '\r':
-						case '\v':
-						case '\n':
-						case '\t':
-							// Whitespace. If the previous character was a vowel
+						case { } c when IsWhitespace(c):
+							// If the previous character was a vowel
 							// and the next one is a vowel as well, add a glottal stop.
 							if (pos > 0 && IsVowel(input[pos - 1]) && IsVowel(nextElement) || input[pos] != ' ')
 							{
@@ -309,25 +291,21 @@ namespace PuroBot.Services
 							}
 
 							break;
-						case '>':
-						case '<':
-						case '|':
-							//syllable delimiters
+						case { } c when IsSyllableDelimiter(c):
 							break;
 						default:
-							await LoggingService.Log(LogSeverity.Debug, nameof(SpeechService),
-								$"Skipped unknown char: '{char.ConvertFromUtf32(input[pos])}' ({input[pos]})"
-							);
+							Logger.LogWarning($"Skipped unknown char: '{input[pos]}' ({input[pos]})");
 							break;
 					}
+				}
 
 				pos = endPos;
 			}
 		}
 
-		private static int AssignSyllableId(int position, u32string input, int[] syllableId, ref int currentSyllable)
+		private static int AssignSyllableId(int position, Utf32String input, int[] syllableId, ref int currentSyllable)
 		{
-			var isEndPunctuation = new Func<u32char, bool>(">¯q\"".ToUtf32().Contains);
+			var isEndPunctuation = new Func<Utf32Char, bool>(Utf32String.FromUtf16(">¯q\"").Contains);
 
 			while (position < input.Count && !IsAlphabet(input[position]))
 				syllableId[position++] = currentSyllable++;
@@ -342,38 +320,39 @@ namespace PuroBot.Services
 			return position;
 		}
 
-		private static async Task EnglishConvertAsync(u32string text)
+		private static void EnglishConvert(Utf32String text)
 		{
 			// alphabetically sorted list of rules
 			// each letter can have multiple rules of four strings each
 			// left, middle, right part and the replacement middle value
-			var rules = new List<u32string[]>[26 + 1];
+			var rules = new List<Utf32String[]>[26 + 1];
 
-			var regex = new Regex(@"(.*?)\|(.*?)\|(.*?)\|(.*?),");
-			var patternMatches = regex.Matches(Patterns).Select(m => m.Groups.Values.Skip(1)).ToArray();
-			foreach (var patternMatch in patternMatches)
+			foreach (var row in Patterns)
 			{
-				var row = patternMatch.Select(g => g.Value.ToUtf32()).ToArray();
 				var ruleIdx = IsAlphabet(row[1][0]) ? 1 + (row[1][0] - 'a') : 0;
-				rules[ruleIdx] ??= new List<u32string[]>();
+				rules[ruleIdx] ??= new List<Utf32String[]>();
 				rules[ruleIdx].Add(row);
 			}
 
-			var result = new u32string();
+			var result = new Utf32String();
 			for (var position = 1; position < text.Count;)
 				position = ApplyConversionRules(text, position, rules, result);
 
-			await ChangeAccentAsync(result, FinnishAccentTab);
+			//ChangeAccentAsync(result, FinnishAccentTab);
+			ChangeAccentAsync(result, EnglishAccentTab);
+
+			text.Clear();
+			text.AddRange(result);
 		}
 
-		private static int ApplyConversionRules(u32string text, int position, List<u32string[]>[] rules,
-			u32string result)
+		private static int ApplyConversionRules(Utf32String text, int position, List<Utf32String[]>[] rules,
+			Utf32String result)
 		{
 			var ruleMatched = false;
 			var ruleIdx = IsAlphabet(text[position]) ? 1 + (text[position] - 'a') : 0;
 			foreach (var rule in rules[ruleIdx])
 			{
-				u32string lPattern = rule[0], mPattern = rule[1], rPattern = rule[2];
+				Utf32String lPattern = rule[0], mPattern = rule[1], rPattern = rule[2];
 
 				var lMatch = MatchesRulePattern(
 					rPattern,
@@ -381,7 +360,7 @@ namespace PuroBot.Services
 				var mMatch = text.Matches(mPattern, position, mPattern.Count);
 				var rMatch = MatchesRulePattern(
 					lPattern,
-					text.ReverseNotInPlace().GetEnumerator()
+					text.Chars.ReverseNotInPlace().GetEnumerator()
 				);
 
 				// current rule doesn't match, try next
@@ -399,98 +378,80 @@ namespace PuroBot.Services
 			return position;
 		}
 
-//TODO: refactor to reduce method complexity
-		private static bool MatchesRulePattern(u32string pattern, IEnumerator<u32char> textEnumerator)
+		private static bool MatchesRulePattern(Utf32String pattern, IEnumerator<Utf32Char> textEnumerator)
 		{
-			//TODO: compare strings as strings instead of each char separately
-			foreach (var patternChar in pattern)
-				switch (patternChar)
-				{
-					case '#':
-					{
-						uint n = 0;
-						for (; IsVowel(textEnumerator.Current); n++)
-							textEnumerator.MoveNext();
-						if (n == 0)
-							return false;
-						break;
-					}
-					case ':':
-						while (IsConsonant(textEnumerator.Current)) textEnumerator.MoveNext();
-						break;
-					case '^':
-						if (!IsConsonant(textEnumerator.TryGetNext()))
-							return false;
-						break;
-					case '.':
-						if (!"bdvgjlmnrwz".ToUtf32().Contains(textEnumerator.TryGetNext()))
-							return false;
-						break;
-					case '+':
-						if (!"eyi".ToUtf32().Contains(textEnumerator.TryGetNext()))
-							return false;
-						break;
-					case '%':
-					{
-						var c = textEnumerator.TryGetNext();
-						if (c == 'i')
-						{
-							if (textEnumerator.TryGetNext() != 'n' || textEnumerator.TryGetNext() != 'g')
-								return false;
-							break;
-						}
+			var patternMatchers = new Dictionary<Utf32Char, Func<Utf32Char, bool>>
+			{
+				{'#', _ => IsVowelBlock(textEnumerator)},
+				{':', _ => IsConsonantBlock(textEnumerator)},
+				{'^', _ => IsConsonant(textEnumerator.TryGetNext())},
+				{'.', _ => Utf32String.FromUtf16("bdvgjlmnrwz").Contains(textEnumerator.TryGetNext())},
+				{'+', _ => Utf32String.FromUtf16("eyi").Contains(textEnumerator.TryGetNext())},
+				{'%', _ => IsSpecialLetterCombination(textEnumerator)},
+				{' ', _ => !IsAlphabetOrSingleQuote(textEnumerator)}
+			};
 
-						if (c != 'e')
-							return false;
+			var defaultMatcher = new Func<Utf32Char, bool>(patternChar => patternChar == textEnumerator.TryGetNext());
 
-						var c2 = textEnumerator.TryGetNext();
-						if (c2 == 'l')
-						{
-							if (textEnumerator.TryGetNext() != 'y')
-								return false;
-							break;
-						}
+			var results = pattern.Select(patternChar =>
+				patternMatchers.GetValueOrDefault(patternChar, defaultMatcher).Invoke(patternChar));
 
-						if (c2 != 'r' && c2 != 's' && c2 != 'd')
-							return false;
-						break;
-					}
-					case ' ':
-					{
-						var c = textEnumerator.TryGetNext();
-						if (IsAlphabet(c) || c == '\'')
-							return false;
-						break;
-					}
-					default:
-						if (patternChar != textEnumerator.TryGetNext())
-							return false;
-						break;
-				}
+			return results.All(result => result);
+		}
 
+		private static bool IsSpecialLetterCombination(IEnumerator<Utf32Char> textEnumerator)
+		{
+			var c = textEnumerator.TryGetNext();
+			if (c == 'i') return textEnumerator.TryGetNext() == 'n' && textEnumerator.TryGetNext() == 'g';
+
+			if (c != 'e')
+				return false;
+
+			var c2 = textEnumerator.TryGetNext();
+			if (c2 == 'l') return textEnumerator.TryGetNext() == 'y';
+
+			return c2 == 'r' || c2 == 's' || c2 == 'd';
+		}
+
+		private static bool IsAlphabetOrSingleQuote(IEnumerator<Utf32Char> textEnumerator)
+		{
+			var c = textEnumerator.TryGetNext();
+			return IsAlphabet(c) || c == '\'';
+		}
+
+		private static bool IsConsonantBlock(IEnumerator<Utf32Char> textEnumerator)
+		{
+			while (IsConsonant(textEnumerator.Current)) textEnumerator.MoveNext();
 			return true;
 		}
 
-		private static async Task ChangeAccentAsync(u32string result, Dictionary<u32string, u32string> accentRules)
+		private static bool IsVowelBlock(IEnumerator<Utf32Char> textEnumerator)
+		{
+			uint n = 0;
+			for (; IsVowel(textEnumerator.Current); n++) textEnumerator.MoveNext();
+			return n != 0;
+		}
+
+		private static void ChangeAccentAsync(Utf32String result,
+			Dictionary<Utf32String, Utf32String> accentRules)
 		{
 			// At this point, the result string is pretty much an ASCII representation of IPA.
 			// Now just touch up it a bit to convert it into typical Finnish pronunciation.
-			await LoggingService.Log(LogSeverity.Debug, nameof(SpeechService),
-				$"Before: {result.ToUtf8()}");
+			Logger.LogDebug($"Before: {result.ToUtf16()}");
 
 			ApplyAccentRules(result, accentRules);
 
-			await LoggingService.Log(LogSeverity.Debug, nameof(SpeechService),
-				$"After: {result.ToUtf8()}");
+			Logger.LogDebug($"After: {result.ToUtf16()}");
 		}
 
-		private static void ApplyAccentRules(u32string result, Dictionary<u32string, u32string> rules)
+		private static void ApplyAccentRules(Utf32String result, Dictionary<Utf32String, Utf32String> rules)
 		{
 			for (var position = 0; position < result.Count; position++)
 				position = ApplyAccentRulesAt(position, result, rules);
 		}
 
-		private static int ApplyAccentRulesAt(int position, u32string result, Dictionary<u32string, u32string> rules)
+		private static int ApplyAccentRulesAt(int position, Utf32String result,
+			Dictionary<Utf32String, Utf32String> rules)
 		{
 			foreach (var (initial, replacement) in rules)
 			{
@@ -504,7 +465,7 @@ namespace PuroBot.Services
 			return position;
 		}
 
-		private static void ApplyCanonizationRules(u32string result, Dictionary<u32string, u32string> rules)
+		private static void ApplyCanonizationRules(Utf32String result, Dictionary<Utf32String, Utf32String> rules)
 		{
 			for (var position = 0; position < result.Count; position++)
 				while (ApplyCanonizationRulesAt(position, result, rules))
@@ -512,8 +473,8 @@ namespace PuroBot.Services
 					position -= Math.Min(position, 3);
 		}
 
-		private static bool ApplyCanonizationRulesAt(int position, u32string result,
-			Dictionary<u32string, u32string> rules)
+		private static bool ApplyCanonizationRulesAt(int position, Utf32String result,
+			Dictionary<Utf32String, Utf32String> rules)
 		{
 			var rulesApplied = false;
 
@@ -529,81 +490,18 @@ namespace PuroBot.Services
 			return rulesApplied;
 		}
 
-		private static async Task<u32string> CanonizeAsync(string text)
+		private static Utf32String Canonize(string text)
 		{
-			var canonized = text.ToLowerInvariant().ToUtf32();
+			var canonized = Utf32String.FromUtf16(text);
 			ApplyCanonizationRules(canonized, SymbolCanon);
 
 			//pad input with leading and trailing space, so all patterns can match
 			canonized.Insert(0, ' ');
 			canonized.Add(' ');
 
-			await EnglishConvertAsync(canonized);
+			EnglishConvert(canonized);
 			ApplyCanonizationRules(canonized, PunctuationCanon);
 			return canonized;
-		}
-
-		private enum RecordModes
-		{
-			ChooseRandomly,
-			Trill,
-			PlayInSequence
-		}
-
-		private struct ProsodyElement
-		{
-			public ProsodyElement(u32char record, uint framesCount, double relativePitch)
-			{
-				Record = record;
-				FramesCount = framesCount;
-				RelativePitch = relativePitch;
-			}
-
-			public u32char Record { get; }
-			public uint FramesCount { get; }
-			public double RelativePitch { get; }
-		}
-
-		private readonly struct PhonemeMapItem
-		{
-			public PhonemeMapItem(int character, uint length, uint repeatedLength, uint surroundedLength)
-			{
-				Character = character;
-				Length = length;
-				RepeatedLength = repeatedLength;
-				SurroundedLength = surroundedLength;
-			}
-
-			public u32char Character { get; }
-			public uint Length { get; }
-			public uint RepeatedLength { get; }
-			public uint SurroundedLength { get; }
-		}
-
-		private class Record
-		{
-			public Record(RecordModes mode, double voice, Frame[] data)
-			{
-				Mode = mode;
-				Voice = voice;
-				Data = data;
-			}
-
-			public RecordModes Mode { get; }
-			public double Voice { get; }
-			public Frame[] Data { get; }
-		}
-
-		private class Frame
-		{
-			public Frame(double gain, double[] coefficients)
-			{
-				Gain = gain;
-				Coefficients = coefficients;
-			}
-
-			public double Gain { get; }
-			public double[] Coefficients { get; }
 		}
 	}
 }

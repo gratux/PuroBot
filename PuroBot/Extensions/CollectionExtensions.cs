@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using PuroBot.SpeechSynth;
 
 namespace PuroBot.Extensions
 {
@@ -21,7 +22,7 @@ namespace PuroBot.Extensions
 			}
 		}
 
-		public static bool Matches<T>(this IEnumerable<T> lhs, List<T> rhs, int startIdx, int length)
+		public static bool Matches<T>(this IEnumerable<T> lhs, Utf32String rhs, int startIdx, int length)
 		{
 			var lhsSub = lhs.Skip(startIdx).Take(length).ToList();
 			if (lhsSub.Count != rhs.Count)
@@ -49,9 +50,6 @@ namespace PuroBot.Extensions
 				yield return src[i];
 		}
 
-		public static int IndexOfAny<T>(this List<T> src, int startIndex, params T[] items) =>
-			src.FindIndex(startIndex, items.Contains);
-
 		public static void Replace<T>(this List<T> src, int startIndex, int count, List<T> replacement)
 		{
 			src.RemoveRange(startIndex, count);
@@ -60,7 +58,8 @@ namespace PuroBot.Extensions
 
 		public static IEnumerable<byte> NormalizeAudio(this IEnumerable<byte> src, double relativeVolume = 0.7)
 		{
-			return src.Select(v => v.Scale(sbyte.MinValue, sbyte.MaxValue, relativeVolume * sbyte.MinValue, relativeVolume * sbyte.MaxValue));
+			return src.Select(v => v.Scale(sbyte.MinValue, sbyte.MaxValue, relativeVolume * sbyte.MinValue,
+				relativeVolume * sbyte.MaxValue));
 		}
 	}
 }

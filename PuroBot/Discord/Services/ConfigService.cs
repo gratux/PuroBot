@@ -3,7 +3,7 @@ using System.IO;
 using System.Xml.Serialization;
 using PuroBot.Config;
 
-namespace PuroBot.Services
+namespace PuroBot.Discord.Services
 {
 	public static class ConfigService
 	{
