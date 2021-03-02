@@ -29,11 +29,14 @@ namespace PuroBot.Discord.CommandModules
 			await Sp.WaitAsync();
 			try
 			{
-				var voiceInfo = await _voice.JoinOrReuseChannel(Context);
+				var voiceInfo = await _voice.AcquireChannel(Context);
 				if (voiceInfo is null) //failed to connect
 					return;
-				var pcm = _speech.SynthesizeMessageAsync(message);
-				await voiceInfo.AudioStream.WriteAsync(pcm.NormalizeAudio().ToArray());
+				
+				var pcm = _speech.SynthesizeMessageAsync(message).NormalizeAudio().ToArray();
+				await voiceInfo.AudioStream.WriteAsync(pcm);
+				
+				_voice.ReleaseChannel(Context);
 			}
 			finally
 			{

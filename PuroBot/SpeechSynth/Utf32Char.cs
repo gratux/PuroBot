@@ -4,9 +4,9 @@ namespace PuroBot.SpeechSynth
 {
 	public class Utf32Char
 	{
-		public Utf32Char(int value) => Value = value;
+		private Utf32Char(int value) => Value = value;
 
-		public int Value { get; }
+		private int Value { get; }
 
 		public string ToUtf16() => char.ConvertFromUtf32(Value);
 
@@ -20,7 +20,7 @@ namespace PuroBot.SpeechSynth
 		public static int operator -(Utf32Char lhs, Utf32Char rhs) => lhs.Value - rhs.Value;
 		public static int operator +(Utf32Char lhs, Utf32Char rhs) => lhs.Value + rhs.Value;
 
-		public bool Equals(Utf32Char other)
+		private bool Equals(Utf32Char other)
 		{
 			if (ReferenceEquals(null, other)) return false;
 			if (ReferenceEquals(this, other)) return true;

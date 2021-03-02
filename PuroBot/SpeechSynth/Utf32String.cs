@@ -50,9 +50,6 @@ namespace PuroBot.SpeechSynth
 		public void Replace(int startIndex, int initialCount, Utf32String replacement) =>
 			Chars.Replace(startIndex, initialCount, replacement.Chars);
 
-		public void Insert(int i, Utf32Char c)
-		{
-			Chars.Insert(i, c);
-		}
+		public void Insert(int i, Utf32Char c) => Chars.Insert(i, c);
 	}
 }

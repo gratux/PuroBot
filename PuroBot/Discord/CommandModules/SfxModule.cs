@@ -42,14 +42,14 @@ namespace PuroBot.Discord.CommandModules
 			await Sp.WaitAsync();
 			try
 			{
-				var audioInfo = await _voice.JoinOrReuseChannel(Context);
-				var audioStream = audioInfo.AudioStream;
+				var voiceInfo = await _voice.AcquireChannel(Context);
+				if (voiceInfo is null) //failed to connect
+					return;
 
-				//using var ffmpeg = CreateStream(path);
-				//await using var audioData = ffmpeg.StandardOutput.BaseStream;
-
-				await using var fileStream = File.Open(path, FileMode.Open);
-				await fileStream.CopyToAsync(audioStream);
+				var pcm = (await File.ReadAllBytesAsync(path)).NormalizeAudio().ToArray();
+				await voiceInfo.AudioStream.WriteAsync(pcm);
+				
+				_voice.ReleaseChannel(Context);
 			}
 			finally
 			{
@@ -63,7 +63,7 @@ namespace PuroBot.Discord.CommandModules
 		public async Task ListSpeakCommand()
 		{
 			var files = new DirectoryInfo(BaseAudioPath).GetFileTree($"*.{AudioExt}")
-				.Skip(1); // skip name of resource directory
+				.Skip(1); // skip name of top directory
 			await ReplyAsync($"Available files are:{string.Join('\n', files).AsCode(true)}");
 		}
 	}

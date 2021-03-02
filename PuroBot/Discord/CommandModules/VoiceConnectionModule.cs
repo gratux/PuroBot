@@ -18,7 +18,10 @@ namespace PuroBot.Discord.CommandModules
 		[RequireContext(ContextType.Guild)]
 		public async Task JoinCommand(IVoiceChannel channel = null)
 		{
-			await _voice.JoinOrReuseChannel(Context, channel);
+			// join, but release the lock immediately after, as to not block other tasks from playing audio
+			// this also means the connection timeout will start immediately
+			await _voice.AcquireChannel(Context, channel);
+			_voice.ReleaseChannel(Context);
 		}
 
 		[Command("leave")]
@@ -26,6 +29,7 @@ namespace PuroBot.Discord.CommandModules
 		[RequireContext(ContextType.Guild)]
 		public async Task LeaveCommand()
 		{
+			_voice.ReleaseChannel(Context);
 			await _voice.LeaveChannel(Context);
 		}
 	}
