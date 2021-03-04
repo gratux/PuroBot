@@ -26,22 +26,13 @@ namespace PuroBot.Discord.CommandModules
 		[Alias("tts")]
 		public async Task SpeechCommand([Remainder] string message)
 		{
-			await Sp.WaitAsync();
-			try
-			{
-				var voiceInfo = await _voice.AcquireChannel(Context);
-				if (voiceInfo is null) //failed to connect
-					return;
-				
-				var pcm = _speech.SynthesizeMessageAsync(message).NormalizeAudio().ToArray();
-				await voiceInfo.AudioStream.WriteAsync(pcm);
-				
-				_voice.ReleaseChannel(Context);
-			}
-			finally
-			{
-				Sp.Release();
-			}
+			using var channelAcquirer = await VoiceConnectionService.ChannelAcquirer.Create(_voice, Context);
+			var voiceInfo = channelAcquirer.VoiceInfo;
+			if (voiceInfo is null) //failed to connect
+				return;
+
+			var pcm = _speech.SynthesizeMessageAsync(message).NormalizeAudio().ToArray();
+			await voiceInfo.AudioStream.WriteAsync(pcm);
 		}
 	}
 }

@@ -15,7 +15,7 @@ namespace PuroBot.Discord.Services
 
 		private readonly List<ConnectionInfo> _activeConnections = new();
 
-		public async Task<VoiceInfo> AcquireChannel(ICommandContext context, IVoiceChannel channel = null)
+		private async Task<VoiceInfo> AcquireChannel(ICommandContext context, IVoiceChannel channel = null)
 		{
 			// join the specified/default voice channel
 			// 
@@ -25,30 +25,25 @@ namespace PuroBot.Discord.Services
 
 			var connection = GetActiveConnection(context.Guild.Id);
 
-			if (connection is null)
-			{
-				// not connected -> connect and lock
-				return await CreateNewConnection(context, channel);
-			}
-
-			var targetChannel = await GetTargetChannel(context, channel ?? connection.VoiceInfo.VoiceChannel);
+			var targetChannel = await GetTargetChannel(context, channel, connection);
 			if (targetChannel is null)
-			{
+				// target channel could not be determined
 				return null;
-			}
+
+			if (connection is null)
+				// not connected -> connect and lock
+				return await CreateNewConnection(context, targetChannel);
 
 			await connection.Lock();
-			
+
 			if (connection.VoiceInfo.VoiceChannel != targetChannel)
-			{
 				// target and current different, rejoin
 				connection.VoiceInfo = await JoinChannel(targetChannel);
-			}
 
 			return connection.VoiceInfo;
 		}
 
-		public void ReleaseChannel(ICommandContext context)
+		private void ReleaseChannel(ICommandContext context)
 		{
 			// start timeout for disconnect and unlock
 			//
@@ -70,13 +65,10 @@ namespace PuroBot.Discord.Services
 
 		private async Task<VoiceInfo> CreateNewConnection(ICommandContext context, IVoiceChannel channel)
 		{
-			var targetChannel = await GetTargetChannel(context, channel);
-			var voiceInfo = await JoinChannel(targetChannel);
+			var voiceInfo = await JoinChannel(channel);
 			if (voiceInfo is null)
-			{
 				// connection failed, do not lock
 				return null;
-			}
 
 			var connection = new ConnectionInfo(context.Guild.Id, voiceInfo, () => RemoveConnection(context.Guild.Id));
 			await connection.Lock();
@@ -86,11 +78,15 @@ namespace PuroBot.Discord.Services
 			return connection.VoiceInfo;
 		}
 
-		private static async Task<IVoiceChannel> GetTargetChannel(ICommandContext context, IVoiceChannel channel)
+		private static async Task<IVoiceChannel> GetTargetChannel(ICommandContext context, IVoiceChannel channel,
+			ConnectionInfo connection)
 		{
 			var targetChannel = channel;
 
-			// if no channel specified, use channel of user
+			// re-use current connection if no channel was specified
+			targetChannel ??= connection.VoiceInfo?.VoiceChannel;
+
+			// not connected and no channel specified, use channel of user
 			targetChannel ??= (context.User as IGuildUser)?.VoiceChannel;
 
 			if (targetChannel is not null) return targetChannel;
@@ -135,7 +131,7 @@ namespace PuroBot.Discord.Services
 				_activeConnections.RemoveAll(i => i.GuildId == guildId);
 			}
 		}
-		
+
 		public class VoiceInfo : IDisposable
 		{
 			public VoiceInfo(AudioOutStream audioStream, IVoiceChannel voiceChannel)
@@ -207,6 +203,39 @@ namespace PuroBot.Discord.Services
 			private void StartTimeout() => _timeoutTimer.Change(ChannelTimeout, Timeout.InfiniteTimeSpan);
 
 			private void StopTimeout() => _timeoutTimer.Change(Timeout.Infinite, Timeout.Infinite);
+		}
+
+		public class ChannelAcquirer : IDisposable
+		{
+			private readonly ICommandContext _context;
+			private readonly VoiceConnectionService _voice;
+
+			private ChannelAcquirer(VoiceConnectionService voice, ICommandContext context)
+			{
+				_voice = voice;
+				_context = context;
+			}
+
+			public VoiceInfo VoiceInfo { get; private set; }
+
+			public void Dispose()
+			{
+				_voice.ReleaseChannel(_context);
+				GC.SuppressFinalize(this);
+			}
+
+			private async Task Acquire(IVoiceChannel channel)
+			{
+				VoiceInfo = await _voice.AcquireChannel(_context, channel);
+			}
+
+			public static async Task<ChannelAcquirer> Create(VoiceConnectionService voice, ICommandContext context,
+				IVoiceChannel channel = null)
+			{
+				var ca = new ChannelAcquirer(voice, context);
+				await ca.Acquire(channel);
+				return ca;
+			}
 		}
 	}
 }
