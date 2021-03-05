@@ -24,9 +24,9 @@ namespace PuroBot.SpeechSynth
 		private static readonly Random Rnd = new();
 
 		private readonly double[] _bp = new double[MaxOrder];
-		private int _count, _offset;
 
-		private readonly Dictionary<double,double> _last = new();
+		private readonly Dictionary<double, double> _last = new();
+		private int _count, _offset;
 
 		private double _pGain, _pPitch, _pBreath, _pBuzz;
 		private double _sampleAverage;
@@ -265,9 +265,7 @@ namespace PuroBot.SpeechSynth
 				                        pos > 0 && IsVowel(input[pos - 1]);
 
 				if (Maps.ContainsKey(input[pos]))
-				{
 					foreach (var element in Maps[input[pos]])
-					{
 						yield return new ProsodyElement
 						(
 							element.Character,
@@ -275,10 +273,7 @@ namespace PuroBot.SpeechSynth
 							(surroundedByVowel ? element.SurroundedLength : 0),
 							pitchCurve[syllableId[pos]]
 						);
-					}
-				}
 				else
-				{
 					switch (input[pos])
 					{
 						case { } c when IsWhitespace(c):
@@ -297,7 +292,6 @@ namespace PuroBot.SpeechSynth
 							Logger.LogWarning($"Skipped unknown char: '{input[pos]}' ({input[pos]})");
 							break;
 					}
-				}
 
 				pos = endPos;
 			}
@@ -492,7 +486,7 @@ namespace PuroBot.SpeechSynth
 
 		private static Utf32String Canonize(string text)
 		{
-			var canonized = Utf32String.FromUtf16(text);
+			var canonized = Utf32String.FromUtf16(text.ToLowerInvariant());
 			ApplyCanonizationRules(canonized, SymbolCanon);
 
 			//pad input with leading and trailing space, so all patterns can match

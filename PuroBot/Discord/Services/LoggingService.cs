@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -17,39 +18,46 @@ namespace PuroBot.Discord.Services
 			command.Log += Log;
 		}
 
+		private static string BuildMessage(LogMessage arg)
+		{
+			var msgBuilder = new StringBuilder();
+
+			if (!string.IsNullOrWhiteSpace(arg.Message)) msgBuilder.Append(arg.Message);
+
+			if (arg.Exception is null) return msgBuilder.ToString();
+
+			if (msgBuilder.Length != 0)
+			{
+				msgBuilder.AppendFormat(": {0}", arg.Exception);
+				return msgBuilder.ToString();
+			}
+
+			msgBuilder.Append(arg.Exception);
+			return msgBuilder.ToString();
+		}
+
 		private static Task Log(LogMessage arg)
 		{
+			var msg = BuildMessage(arg);
 			switch (arg.Severity)
 			{
 				case LogSeverity.Critical:
-					if (arg.Exception is not null)
-					{
-						Logger.LogError(arg.Exception, arg.Source);
-						break;
-					}
-
-					Logger.LogError(arg.Message, arg.Source);
+					Logger.LogError(msg, arg.Source);
 					break;
 				case LogSeverity.Error:
-					if (arg.Exception is not null)
-					{
-						Logger.LogError(arg.Exception, arg.Source);
-						break;
-					}
-
-					Logger.LogError(arg.Message, arg.Source);
+					Logger.LogError(msg, arg.Source);
 					break;
 				case LogSeverity.Warning:
-					Logger.LogWarning(arg.Message, arg.Source);
+					Logger.LogWarning(msg, arg.Source);
 					break;
 				case LogSeverity.Info:
-					Logger.Log(arg.Message, arg.Source);
+					Logger.Log(msg, arg.Source);
 					break;
 				case LogSeverity.Verbose:
-					Logger.LogDebug(arg.Message, arg.Source);
+					Logger.LogDebug(msg, arg.Source);
 					break;
 				case LogSeverity.Debug:
-					Logger.LogDebug(arg.Message, arg.Source);
+					Logger.LogDebug(msg, arg.Source);
 					break;
 				default:
 					throw new ArgumentOutOfRangeException(nameof(arg));
