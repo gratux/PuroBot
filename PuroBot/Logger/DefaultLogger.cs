@@ -49,7 +49,7 @@ namespace PuroBot.Logger
 			Console.Write($"[{time}\\");
 			Console.ForegroundColor = header.Color;
 			Console.Write($"{header.Level.PadRight(7)}");
-			Console.ForegroundColor = default;
+			Console.ResetColor();
 			Console.Write($" {header.Source}] - ");
 		}
 

@@ -1,6 +1,6 @@
 namespace PuroBot.SpeechSynth
 {
-	public readonly struct PhonemeMapItem
+	public class PhonemeMapItem
 	{
 		public PhonemeMapItem(Utf32Char character, uint length, uint repeatedLength, uint surroundedLength)
 		{

@@ -13,7 +13,7 @@ namespace PuroBot
 
 		private static void Main()
 		{
-			var token = ConfigService.Global.Token;
+			var token = ConfigService.Global.DiscordBotToken;
 			MainAsync(token).GetAwaiter().GetResult();
 		}
 

@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using PuroBot.Extensions;
 
 namespace PuroBot.Discord.CommandModules
 {
@@ -38,7 +39,7 @@ namespace PuroBot.Discord.CommandModules
 			msg = Regex.Replace(msg, @"N([aeiouAEIOU])", "Ny$1");
 			msg = Regex.Replace(msg, @"ove", "uv");
 			msg = Regex.Replace(msg, @"nd(?= |$)", "ndo");
-			msg = Regex.Replace(msg, @"!+", $"{Kaomoji[Rnd.Next(Kaomoji.Length)]}");
+			msg = Regex.Replace(msg, @"!+", _=>Kaomoji[Rnd.Next(Kaomoji.Length)].AsCode());
 			return msg;
 		}
 
@@ -48,8 +49,6 @@ namespace PuroBot.Discord.CommandModules
 			await ctx.Message.ReplyAsync("Silly Human, your message is empty. I can't translate nothing...");
 			return true;
 		}
-
-		#region uwuify
 
 		[Command("uwufy")]
 		[Alias("uwu")]
@@ -62,12 +61,8 @@ namespace PuroBot.Discord.CommandModules
 				return;
 
 			var translated = UwuTranslate(message);
-			await ReplyAsync($"I translated your message, human:\n> {translated}");
+			await ReplyAsync($"I translated your message, human:\n>>> {translated}");
 		}
-
-		#endregion
-
-		#region uwuifythis
 
 		[Command("uwufythis")]
 		[Alias("uwuthis")]
@@ -80,9 +75,7 @@ namespace PuroBot.Discord.CommandModules
 				return;
 
 			var translated = UwuTranslate(mentioned);
-			await ReplyAsync($"I translated your message:\n> {translated}");
+			await ReplyAsync($"I translated your message:\n>>> {translated}");
 		}
-
-		#endregion
 	}
 }

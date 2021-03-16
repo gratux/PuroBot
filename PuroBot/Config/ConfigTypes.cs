@@ -1,13 +1,13 @@
 namespace PuroBot.Config
 {
-	public struct GlobalConfig
+	public class GlobalConfig
 	{
-		public string Token;
+		public string DiscordBotToken = string.Empty;
 	}
 
-	public struct Server
+	public class Server
 	{
-		public ulong Id;
-		public char Prefix;
+		public ulong Id = 0;
+		public char Prefix = '~';
 	}
 }

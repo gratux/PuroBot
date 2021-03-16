@@ -20,6 +20,10 @@ namespace PuroBot.Extensions
 				yield return chunk.ToArray();
 				chunk.Clear();
 			}
+
+			if (chunk.Count != 0)
+				// return remaining, that dont fill a chunk
+				yield return chunk.ToArray();
 		}
 
 		public static bool Matches<T>(this IEnumerable<T> lhs, Utf32String rhs, int startIdx, int length)
