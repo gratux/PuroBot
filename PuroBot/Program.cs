@@ -1,41 +1,31 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using PuroBot.Discord.Services;
+using PuroBot.Common;
+using PuroBot.Factories;
 using PuroBot.Handlers;
 
 namespace PuroBot
 {
 	internal static class Program
 	{
-		private static CommandHandler _commandHandler;
+		private static CommandHandler? _commandHandler;
 
 		private static void Main()
 		{
-			var token = ConfigService.Global.DiscordBotToken;
+			var token = Secrets.BotToken;
 			MainAsync(token).GetAwaiter().GetResult();
 		}
 
 		private static async Task MainAsync(string token)
 		{
-			var client = new DiscordSocketClient(new DiscordSocketConfig
-			{
-				ExclusiveBulkDelete = true
-			});
-			var commands = new CommandService(new CommandServiceConfig
-			{
-				CaseSensitiveCommands = false,
-				DefaultRunMode = RunMode.Async,
-				IgnoreExtraArgs = true,
-				LogLevel = LogSeverity.Warning
-			});
-			commands.CommandExecuted += EventHandlers.CmdExecutedHandler;
+			IServiceProvider services = InitFactory.Initialize(out CommandService commands,
+					out DiscordSocketClient client)
+				.BuildServiceProvider();
 
-			LoggingService.Init(client, commands);
-
-			_commandHandler = new CommandHandler(client, commands,
-				new Initialize(commands, client).BuildServiceProvider());
+			_commandHandler = new CommandHandler(client, commands, services);
 
 			await _commandHandler.InstallCommandsAsync();
 

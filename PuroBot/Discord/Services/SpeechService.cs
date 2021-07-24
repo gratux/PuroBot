@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using PuroBot.SpeechSynth;
+using SpeechSynthesizer;
 using u32char = System.Int32;
 using u32string = System.Collections.Generic.List<int>;
 

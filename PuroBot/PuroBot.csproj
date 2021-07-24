@@ -6,26 +6,33 @@
         <AssemblyVersion>0.6.5.*</AssemblyVersion>
         <Deterministic>false</Deterministic>
         <LangVersion>default</LangVersion>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Discord.Net" Version="2.3.1" />
-        <PackageReference Include="Discord.Net.Commands" Version="2.3.1" />
-        <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="7.23.2.1" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.1" />
-        <PackageReference Include="SodiumDL" Version="0.5.3" />
+        <PackageReference Include="Discord.Net" Version="2.4.0"/>
+        <PackageReference Include="Discord.Net.Commands" Version="2.4.0"/>
+        <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="8.1.0"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.8"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="5.0.8">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.2"/>
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="5.0.7"/>
+        <PackageReference Include="SodiumDL" Version="0.5.3"/>
     </ItemGroup>
 
     <ItemGroup>
         <None Update="Resources/**/*">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
-        <None Update="Config/**/*.xml">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Discord" />
+        <ProjectReference Include="..\Common\Common.csproj"/>
+        <ProjectReference Include="..\SpeechSynthesizer\SpeechSynthesizer.csproj"/>
     </ItemGroup>
+
 </Project>

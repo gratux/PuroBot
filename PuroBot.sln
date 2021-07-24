@@ -2,6 +2,10 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PuroBot", "PuroBot\PuroBot.csproj", "{99D4A185-4D23-4BF8-8EA3-278656A1ABE0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpeechSynthesizer", "SpeechSynthesizer\SpeechSynthesizer.csproj", "{C20C9C04-9F79-452A-99B0-7C38444E5F6D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{87DA6757-9067-4D72-9A32-35BF9FED8374}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +16,13 @@ Global
 		{99D4A185-4D23-4BF8-8EA3-278656A1ABE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{99D4A185-4D23-4BF8-8EA3-278656A1ABE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{99D4A185-4D23-4BF8-8EA3-278656A1ABE0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C20C9C04-9F79-452A-99B0-7C38444E5F6D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C20C9C04-9F79-452A-99B0-7C38444E5F6D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C20C9C04-9F79-452A-99B0-7C38444E5F6D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C20C9C04-9F79-452A-99B0-7C38444E5F6D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{87DA6757-9067-4D72-9A32-35BF9FED8374}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{87DA6757-9067-4D72-9A32-35BF9FED8374}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{87DA6757-9067-4D72-9A32-35BF9FED8374}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{87DA6757-9067-4D72-9A32-35BF9FED8374}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

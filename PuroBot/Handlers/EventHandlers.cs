@@ -2,20 +2,18 @@ using System;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using PuroBot.Logger;
+using PuroBot.Common;
 
 namespace PuroBot.Handlers
 {
 	public static class EventHandlers
 	{
-		private static readonly ILogger Logger = new DefaultLogger();
-
 		public static async Task CmdExecutedHandler(Optional<CommandInfo> info, ICommandContext context, IResult result)
 		{
 			if (result.IsSuccess)
 			{
 				if (info.IsSpecified) // if possible, log executed command
-					Logger.Log($"{info.Value.Name} executed successfully");
+					Logging.Info($"{info.Value.Name} executed successfully");
 				return;
 			}
 
@@ -38,7 +36,8 @@ namespace PuroBot.Handlers
 				default:
 					await context.Message.ReplyAsync(result.ErrorReason);
 					if (info.IsSpecified)
-						Logger.LogError(new CommandException(info.Value, context, new Exception(result.ErrorReason)));
+						Logging.Error("Command Execution Error",
+							new CommandException(info.Value, context, new Exception(result.ErrorReason)));
 					break;
 			}
 		}

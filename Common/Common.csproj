@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net5.0</TargetFramework>
+        <RootNamespace>PuroBot.Common</RootNamespace>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="log4net" Version="2.0.12"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="5.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="5.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="5.0.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="Config/**/*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+</Project>

@@ -1,35 +1,14 @@
 using System;
-using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
-using PuroBot.Config;
+using PuroBot.Common;
 using PuroBot.Discord.Services;
 
 namespace PuroBot.Handlers
 {
-	public class Initialize
-	{
-		private readonly DiscordSocketClient _client;
-		private readonly CommandService _commands;
-
-		public Initialize(CommandService commands = null, DiscordSocketClient client = null)
-		{
-			_commands = commands ?? new CommandService();
-			_client = client ?? new DiscordSocketClient();
-		}
-
-		public IServiceProvider BuildServiceProvider() =>
-			new ServiceCollection()
-				.AddSingleton(_client)
-				.AddSingleton(_commands)
-				.AddSingleton<VoiceConnectionService>()
-				.AddSingleton<SpeechService>()
-				.BuildServiceProvider();
-	}
-
 	public class CommandHandler
 	{
 		private readonly DiscordSocketClient _client;
@@ -52,7 +31,7 @@ namespace PuroBot.Handlers
 		private async Task HandleCommandAsync(SocketMessage arg)
 		{
 			// Don't process the command if it was a system message
-			if (!(arg is SocketUserMessage message)) return;
+			if (arg is not SocketUserMessage message) return;
 			// ignore bots
 			if (message.Author.IsBot) return;
 
@@ -61,10 +40,10 @@ namespace PuroBot.Handlers
 			// get the command prefix to look for, depending on calling context
 			var prefix = message.Channel is SocketGuildChannel guildChannel
 				? GetOrAddServerPrefix(guildChannel.Guild.Id)
-				: '~';
+				: Settings.DefaultPrefix;
 
 			// Determine if the message is a command based on the prefix
-			if (!(message.HasCharPrefix(prefix, ref argPos) ||
+			if (!(message.HasStringPrefix(prefix, ref argPos) ||
 			      message.HasMentionPrefix(_client.CurrentUser, ref argPos)))
 				return;
 
@@ -79,25 +58,7 @@ namespace PuroBot.Handlers
 				_services);
 		}
 
-		private static char GetOrAddServerPrefix(ulong guildId)
-		{
-			char prefix;
-			try
-			{
-				prefix = ConfigService.Servers.First(s => s.Id == guildId).Prefix;
-			}
-			catch (InvalidOperationException)
-			{
-				// server not in config -> add with default value
-				prefix = '~';
-				ConfigService.Servers.Add(new Server
-				{
-					Id = guildId,
-					Prefix = prefix
-				});
-			}
-
-			return prefix;
-		}
+		private string GetOrAddServerPrefix(ulong guildId) =>
+			_services.GetService<DatabaseService>()?.GetServerCommandPrefix(guildId) ?? Settings.DefaultPrefix;
 	}
 }

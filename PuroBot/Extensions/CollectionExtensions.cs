@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using PuroBot.SpeechSynth;
 
 namespace PuroBot.Extensions
 {
@@ -26,16 +25,6 @@ namespace PuroBot.Extensions
 				yield return chunk.ToArray();
 		}
 
-		public static bool Matches<T>(this IEnumerable<T> lhs, Utf32String rhs, int startIdx, int length)
-		{
-			var lhsSub = lhs.Skip(startIdx).Take(length).ToList();
-			if (lhsSub.Count != rhs.Count)
-				return false;
-
-			// return false if any characters dont match
-			return !lhsSub.Where((element, idx) => !element.Equals(rhs[idx])).Any();
-		}
-
 		public static string IncludeIfAny(this IReadOnlyList<string> items, string header,
 			Func<string, string> itemFormatter, string separator, bool startInNewLine = false)
 		{
@@ -45,7 +34,7 @@ namespace PuroBot.Extensions
 			return string.Empty;
 		}
 
-		public static T TryGetNext<T>(this IEnumerator<T> enumerator) =>
+		public static T? TryGetNext<T>(this IEnumerator<T> enumerator) =>
 			enumerator.MoveNext() ? enumerator.Current : default;
 
 		public static IEnumerable<T> ReverseNotInPlace<T>(this IReadOnlyList<T> src)
