@@ -35,7 +35,7 @@ namespace PuroBot.Common
 		/// </summary>
 		/// <param name="msg">the message to be logged</param>
 		/// <param name="exception">the <see cref="Exception" /> that has occured (optional)</param>
-		/// <param name="source">where the <paramref name="msg" /> originated</param>
+		/// <param name="source">where the <paramref name="msg" /> originated (optional)</param>
 		public static void Fatal(string msg, Exception? exception = null, string source = "PuroBot") =>
 			Logger.Fatal(BuildMessage(msg, source), exception);
 
@@ -44,7 +44,7 @@ namespace PuroBot.Common
 		/// </summary>
 		/// <param name="msg">the message to be logged</param>
 		/// <param name="exception">the <see cref="Exception" /> that has occured (optional)</param>
-		/// <param name="source">where the <paramref name="msg" /> originated</param>
+		/// <param name="source">where the <paramref name="msg" /> originated (optional)</param>
 		public static void Error(string msg, Exception? exception = null, string source = "PuroBot") =>
 			Logger.Error(BuildMessage(msg, source), exception);
 
@@ -53,7 +53,7 @@ namespace PuroBot.Common
 		/// </summary>
 		/// <param name="msg">the message to be logged</param>
 		/// <param name="exception">the <see cref="Exception" /> that has occured (optional)</param>
-		/// <param name="source">where the <paramref name="msg" /> originated</param>
+		/// <param name="source">where the <paramref name="msg" /> originated (optional)</param>
 		public static void Warn(string msg, Exception? exception = null, string source = "PuroBot") =>
 			Logger.Warn(BuildMessage(msg, source), exception);
 
@@ -62,7 +62,7 @@ namespace PuroBot.Common
 		/// </summary>
 		/// <param name="msg">the message to be logged</param>
 		/// <param name="exception">the <see cref="Exception" /> that has occured (optional)</param>
-		/// <param name="source">where the <paramref name="msg" /> originated</param>
+		/// <param name="source">where the <paramref name="msg" /> originated (optional)</param>
 		public static void Info(string msg, Exception? exception = null, string source = "PuroBot") =>
 			Logger.Info(BuildMessage(msg, source), exception);
 
@@ -71,7 +71,7 @@ namespace PuroBot.Common
 		/// </summary>
 		/// <param name="msg">the message to be logged</param>
 		/// <param name="exception">the <see cref="Exception" /> that has occured (optional)</param>
-		/// <param name="source">where the <paramref name="msg" /> originated</param>
+		/// <param name="source">where the <paramref name="msg" /> originated (optional)</param>
 		public static void Debug(string msg, Exception? exception = null, string source = "PuroBot") =>
 			Logger.Debug(BuildMessage(msg, source), exception);
 	}

@@ -38,10 +38,13 @@ namespace PuroBot.Discord.Modules
 		[Command("espeak")]
 		public async Task ESpeakCommand([Remainder] string message)
 		{
+			var tempWav = Path.GetTempFileName();
+			var tempRaw = Path.GetTempFileName();
+
 			var procInfo = new ProcessStartInfo
 			{
 				FileName = "/usr/bin/espeak-ng",
-				ArgumentList = {"-w", "temp.wav", message},
+				ArgumentList = {"-w", tempWav, message},
 				UseShellExecute = false
 			};
 			var proc = new Process {StartInfo = procInfo};
@@ -51,7 +54,7 @@ namespace PuroBot.Discord.Modules
 			procInfo = new ProcessStartInfo
 			{
 				FileName = "/usr/bin/ffmpeg",
-				Arguments = "-i temp.wav -ac 2 -ar 48000 -f s16le -y temp.raw",
+				ArgumentList = {"-i", tempWav, "-ac", "2", "-ar", "48000", "-f", "s16le", "-y", tempRaw},
 				UseShellExecute = false
 			};
 			proc = new Process {StartInfo = procInfo};
@@ -62,7 +65,7 @@ namespace PuroBot.Discord.Modules
 			VoiceConnectionService.VoiceInfo? voiceInfo = channelAcquirer.VoiceInfo;
 			if (voiceInfo is null) //failed to connect
 				return;
-			var pcm = await File.ReadAllBytesAsync("temp.raw");
+			var pcm = await File.ReadAllBytesAsync(tempRaw);
 			await voiceInfo.AudioStream.WriteAsync(pcm.NormalizeAudio().ToArray());
 		}
 	}

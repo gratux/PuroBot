@@ -27,6 +27,12 @@ namespace PuroBot.Discord.Services
 			}
 		}
 
+		/// <summary>
+		///     gets the server command prefix for a given server
+		/// </summary>
+		/// <remarks>if the server does not have a database entry, a new one will be created</remarks>
+		/// <param name="serverId">the id of the server</param>
+		/// <returns>the command prefix</returns>
 		public string GetServerCommandPrefix(ulong serverId)
 		{
 			ServerSettings? settings = _dbContext.Servers?.Find(serverId);
@@ -40,6 +46,12 @@ namespace PuroBot.Discord.Services
 			return settings.Prefix;
 		}
 
+		/// <summary>
+		///     sets a custom command prefix for a given server
+		/// </summary>
+		/// <param name="serverId">the id of the server</param>
+		/// <param name="newPrefix">the new command prefix</param>
+		/// <returns><see langword="true" /> if the prefix was saved successfully; <see langword="false" /> otherwise</returns>
 		public bool SetServerCommandPrefix(ulong serverId, string newPrefix)
 		{
 			ServerSettings? settings = _dbContext.Servers?.Find(serverId);

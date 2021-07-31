@@ -66,7 +66,7 @@ namespace PuroBot.Factories
 				case LogSeverity.Info:
 					Logging.Info(arg.Message, arg.Exception, arg.Source);
 					break;
-				case LogSeverity.Verbose: goto case LogSeverity.Debug;
+				case LogSeverity.Verbose:
 				case LogSeverity.Debug:
 					Logging.Debug(arg.Message, arg.Exception, arg.Source);
 					break;
