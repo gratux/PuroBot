@@ -1,3 +1,6 @@
+using System;
+using System.Linq;
+using Discord;
 using Microsoft.EntityFrameworkCore;
 using PuroBot.Common;
 using PuroBot.Models;
@@ -8,6 +11,7 @@ namespace PuroBot.Discord.Services
 	public class DatabaseService
 	{
 		private readonly DatabaseContext _dbContext = new();
+		private readonly Random _random = new();
 
 		/// <summary>
 		///     Saves all changes to the database
@@ -63,6 +67,17 @@ namespace PuroBot.Discord.Services
 
 			settings.Prefix = newPrefix;
 			return SaveDatabase();
+		}
+
+		public (string?, ActivityType) GetRandomActivity()
+		{
+			var activities = _dbContext.Activities;
+			if (activities is null)
+				return (string.Empty, ActivityType.Playing);
+
+			var skip = (int) (_random.NextDouble() * activities.Count());
+			BotActivity? activity = activities.AsQueryable().OrderBy(a => a.Id).Skip(skip).First();
+			return (activity.Name, activity.Type);
 		}
 	}
 }

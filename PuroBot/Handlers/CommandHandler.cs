@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using System.Threading.Tasks;
+using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,6 +21,18 @@ namespace PuroBot.Handlers
 			_client = client;
 			_commands = commands;
 			_services = services;
+
+			_client.Ready += async () => await SetActivityAsync();
+		}
+
+		private async Task SetActivityAsync()
+		{
+			var dbService = _services.GetService<DatabaseService>();
+			if (dbService is null)
+				return;
+
+			(var name, ActivityType type) = dbService.GetRandomActivity();
+			await _client.SetGameAsync(name, type: type);
 		}
 
 		public async Task InstallCommandsAsync()
