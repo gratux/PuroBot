@@ -2,53 +2,98 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace SpeechSynthesizer
+namespace Bisqwit.SpeechSynthesizer
 {
-	public class Utf32String : IEnumerable<Utf32Char>
-	{
-		private Utf32String(string utf16String) => Chars = Utf32Char.FromUtf16(utf16String).ToList();
+    public class Utf32String : IEnumerable<Utf32Char>
+    {
+        private Utf32String(string utf16String)
+        {
+            Chars = Utf32Char.FromUtf16(utf16String).ToList();
+        }
 
-		public Utf32String() : this(string.Empty)
-		{
-		}
+        public Utf32String() : this(string.Empty) { }
 
-		public List<Utf32Char> Chars { get; }
+        public List<Utf32Char> Chars { get; }
 
-		public Utf32Char this[int index]
-		{
-			get => Chars[index];
-			set => Chars[index] = value;
-		}
+        public Utf32Char this[int index]
+        {
+            get => Chars[index];
+            set => Chars[index] = value;
+        }
 
-		public int Count => Chars.Count;
-		public IEnumerator<Utf32Char> GetEnumerator() => Chars.GetEnumerator();
+        public int Count
+        {
+            get => Chars.Count;
+        }
 
-		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        public void Add(Utf32Char value)
+        {
+            Chars.Add(value);
+        }
 
-		public int IndexOfAny(int startIndex = 0, params Utf32Char[] chars) =>
-			Chars.FindIndex(startIndex, chars.Contains);
+        public void AddRange(Utf32String range)
+        {
+            Chars.AddRange(range.Chars);
+        }
 
-		public Utf32Char? ElementAtOrDefault(int index) => Chars.ElementAtOrDefault(index);
+        public void Clear()
+        {
+            Chars.Clear();
+        }
 
-		public bool Contains(Utf32Char? item) => item is not null && Chars.Contains(item);
+        public bool Contains(Utf32Char? item)
+        {
+            return item is not null && Chars.Contains(item);
+        }
 
-		public void Clear() => Chars.Clear();
+        public Utf32Char? ElementAtOrDefault(int index)
+        {
+            return Chars.ElementAtOrDefault(index);
+        }
 
-		public void Add(Utf32Char value) => Chars.Add(value);
+        public static Utf32String FromUtf16(string utf16String)
+        {
+            return new(utf16String);
+        }
 
-		public void AddRange(Utf32String range) => Chars.AddRange(range.Chars);
+        public IEnumerator<Utf32Char> GetEnumerator()
+        {
+            return Chars.GetEnumerator();
+        }
 
-		public override string ToString() => $"U\"{ToUtf16()}\"";
+        public int IndexOfAny(int startIndex = 0, params Utf32Char[] chars)
+        {
+            return Chars.FindIndex(startIndex, chars.Contains);
+        }
 
-		public string ToUtf16() => string.Concat(Chars.Select(c => c.ToUtf16()));
+        public void Insert(int i, Utf32Char c)
+        {
+            Chars.Insert(i, c);
+        }
 
-		public static Utf32String FromUtf16(string utf16String) => new(utf16String);
+        public static implicit operator Utf32String(string utf16String)
+        {
+            return new(utf16String);
+        }
 
-		public static implicit operator Utf32String(string utf16String) => new(utf16String);
+        public void Replace(int startIndex, int initialCount, Utf32String replacement)
+        {
+            Chars.Replace(startIndex, initialCount, replacement.Chars);
+        }
 
-		public void Replace(int startIndex, int initialCount, Utf32String replacement) =>
-			Chars.Replace(startIndex, initialCount, replacement.Chars);
+        public override string ToString()
+        {
+            return $"U\"{ToUtf16()}\"";
+        }
 
-		public void Insert(int i, Utf32Char c) => Chars.Insert(i, c);
-	}
+        public string ToUtf16()
+        {
+            return string.Concat(Chars.Select(c => c.ToUtf16()));
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+    }
 }

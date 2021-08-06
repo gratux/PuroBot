@@ -9,30 +9,21 @@ using PuroBot.Handlers;
 
 namespace PuroBot
 {
-	internal static class Program
-	{
-		private static CommandHandler? _commandHandler;
+    internal static class Program
+    {
+        private static async Task Main()
+        {
+            string? token = Secrets.BotToken;
+            IServiceProvider services = InitFactory.Initialize(out CommandService commands, out DiscordSocketClient client)
+                .BuildServiceProvider();
 
-		private static void Main()
-		{
-			var token = Secrets.BotToken;
-			MainAsync(token).GetAwaiter().GetResult();
-		}
+            var commandHandler = new CommandHandler(client, commands, services);
+            await commandHandler.InstallCommandsAsync();
 
-		private static async Task MainAsync(string token)
-		{
-			IServiceProvider services = InitFactory.Initialize(out CommandService commands,
-					out DiscordSocketClient client)
-				.BuildServiceProvider();
+            await client.LoginAsync(TokenType.Bot, token);
+            await client.StartAsync();
 
-			_commandHandler = new CommandHandler(client, commands, services);
-
-			await _commandHandler.InstallCommandsAsync();
-
-			await client.LoginAsync(TokenType.Bot, token);
-			await client.StartAsync();
-
-			await Task.Delay(-1);
-		}
-	}
+            await Task.Delay(-1);
+        }
+    }
 }

@@ -1,14 +1,14 @@
-namespace SpeechSynthesizer
+namespace Bisqwit.SpeechSynthesizer
 {
-	public class Frame
-	{
-		public Frame(double gain, double[] coefficients)
-		{
-			Gain = gain;
-			Coefficients = coefficients;
-		}
+    public class Frame
+    {
+        public Frame(double gain, double[] coefficients)
+        {
+            Gain = gain;
+            Coefficients = coefficients;
+        }
 
-		public double Gain { get; }
-		public double[] Coefficients { get; }
-	}
+        public double Gain { get; }
+        public double[] Coefficients { get; }
+    }
 }
