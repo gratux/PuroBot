@@ -3,26 +3,22 @@ using Microsoft.Extensions.Configuration;
 
 namespace PuroBot.Common
 {
-	/// <summary>
-	///     holds all application secrets
-	/// </summary>
-	public static class Secrets
-	{
-		private static readonly IConfiguration AppSettings;
+    /// <summary> holds all application secrets </summary>
+    public static class Secrets
+    {
+        static Secrets()
+        {
+            AppSettings = new ConfigurationBuilder()
+                .AddJsonFile(Path.Combine("Config", "appSecrets.json"), false, true)
+                .Build();
+        }
 
-		static Secrets() =>
-			AppSettings = new ConfigurationBuilder()
-				.AddJsonFile(Path.Combine("Config", "appSecrets.json"), false, true)
-				.Build();
+        /// <summary> the connection string to the database </summary>
+        public static string DbConnectionString => AppSettings.GetConnectionString("PostgreSql");
 
-		/// <summary>
-		///     the connection string to the database
-		/// </summary>
-		public static string DbConnectionString => AppSettings.GetConnectionString("PostgreSql");
+        /// <summary> the Discord Bot Token used for interfacing with the API </summary>
+        public static string BotToken => AppSettings.GetSection("ApiKeys")["Discord"];
 
-		/// <summary>
-		///     the Discord Bot Token used for interfacing with the API
-		/// </summary>
-		public static string BotToken => AppSettings.GetSection("ApiKeys")["Discord"];
-	}
+        private static readonly IConfiguration AppSettings;
+    }
 }

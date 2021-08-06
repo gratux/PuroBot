@@ -4,55 +4,60 @@ using System.Linq;
 
 namespace PuroBot.Extensions
 {
-	public static class CollectionExtensions
-	{
-		public static async IAsyncEnumerable<T[]> Partition<T>(this IAsyncEnumerable<T> list, int chunkSize = 5)
-		{
-			await using var enumerator = list.GetAsyncEnumerator();
-			var chunk = new List<T>();
+    public static class CollectionExtensions
+    {
+        public static string IncludeIfAny(this IReadOnlyList<string> items,
+            string header,
+            Func<string, string> itemFormatter,
+            string separator,
+            bool startInNewLine = false)
+        {
+            if (items.Any())
+                return $"{header.AsHeader()}: " + (startInNewLine ? "\n" : string.Empty) +
+                    string.Join(separator, items.Select(itemFormatter.Invoke)) + "\n";
+            return string.Empty;
+        }
 
-			for (var i = 0; await enumerator.MoveNextAsync(); i++)
-			{
-				chunk.Add(enumerator.Current);
-				if ((i + 1) % chunkSize != 0) continue;
+        public static IEnumerable<byte> NormalizeAudio(this IEnumerable<byte> src, double relativeVolume = 0.7)
+        {
+            return src.Select(v => v.Scale(sbyte.MinValue, sbyte.MaxValue, relativeVolume * sbyte.MinValue, relativeVolume * sbyte.MaxValue));
+        }
 
-				yield return chunk.ToArray();
-				chunk.Clear();
-			}
+        public static async IAsyncEnumerable<T[]> Partition<T>(this IAsyncEnumerable<T> list, int chunkSize = 5)
+        {
+            await using var enumerator = list.GetAsyncEnumerator();
+            var chunk = new List<T>();
 
-			if (chunk.Count != 0)
-				// return remaining, that dont fill a chunk
-				yield return chunk.ToArray();
-		}
+            for (int i = 0; await enumerator.MoveNextAsync(); i++)
+            {
+                chunk.Add(enumerator.Current);
+                if ((i + 1) % chunkSize != 0)
+                    continue;
 
-		public static string IncludeIfAny(this IReadOnlyList<string> items, string header,
-			Func<string, string> itemFormatter, string separator, bool startInNewLine = false)
-		{
-			if (items.Any())
-				return $"{header.AsHeader()}: " + (startInNewLine ? "\n" : string.Empty) +
-				       string.Join(separator, items.Select(itemFormatter.Invoke)) + "\n";
-			return string.Empty;
-		}
+                yield return chunk.ToArray();
+                chunk.Clear();
+            }
 
-		public static T? TryGetNext<T>(this IEnumerator<T> enumerator) =>
-			enumerator.MoveNext() ? enumerator.Current : default;
+            if (chunk.Count != 0)
+                // return remaining, that dont fill a chunk
+                yield return chunk.ToArray();
+        }
 
-		public static IEnumerable<T> ReverseNotInPlace<T>(this IReadOnlyList<T> src)
-		{
-			for (var i = src.Count - 1; i >= 0; i--)
-				yield return src[i];
-		}
+        public static void Replace<T>(this List<T> src, int startIndex, int count, List<T> replacement)
+        {
+            src.RemoveRange(startIndex, count);
+            src.InsertRange(startIndex, replacement);
+        }
 
-		public static void Replace<T>(this List<T> src, int startIndex, int count, List<T> replacement)
-		{
-			src.RemoveRange(startIndex, count);
-			src.InsertRange(startIndex, replacement);
-		}
+        public static IEnumerable<T> ReverseNotInPlace<T>(this IReadOnlyList<T> src)
+        {
+            for (int i = src.Count - 1; i >= 0; i--)
+                yield return src[i];
+        }
 
-		public static IEnumerable<byte> NormalizeAudio(this IEnumerable<byte> src, double relativeVolume = 0.7)
-		{
-			return src.Select(v => v.Scale(sbyte.MinValue, sbyte.MaxValue, relativeVolume * sbyte.MinValue,
-				relativeVolume * sbyte.MaxValue));
-		}
-	}
+        public static T? TryGetNext<T>(this IEnumerator<T> enumerator)
+        {
+            return enumerator.MoveNext() ? enumerator.Current : default;
+        }
+    }
 }

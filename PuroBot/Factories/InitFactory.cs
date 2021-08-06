@@ -10,71 +10,67 @@ using PuroBot.Handlers;
 
 namespace PuroBot.Factories
 {
-	public class InitFactory
-	{
-		private DiscordSocketClient _client = new();
-		private CommandService _commands = new();
+    public class InitFactory
+    {
+        private InitFactory()
+        {
+            /* factory */
+        }
 
-		private InitFactory()
-		{
-			/* factory */
-		}
+        public IServiceProvider BuildServiceProvider()
+        {
+            return new ServiceCollection()
+                .AddSingleton(_client)
+                .AddSingleton(_commands)
+                .AddSingleton<VoiceConnectionService>()
+                .AddSingleton<SpeechService>()
+                .AddSingleton<DatabaseService>()
+                .BuildServiceProvider();
+        }
 
-		public static InitFactory Initialize(out CommandService commands, out DiscordSocketClient client)
-		{
-			client = new DiscordSocketClient(new DiscordSocketConfig
-			{
-				ExclusiveBulkDelete = true
-			});
-			commands = new CommandService(new CommandServiceConfig
-			{
-				CaseSensitiveCommands = false,
-				DefaultRunMode = RunMode.Async,
-				IgnoreExtraArgs = true,
-				LogLevel = LogSeverity.Info
-			});
-			commands.CommandExecuted += EventHandlers.CmdExecutedHandler;
+        public static InitFactory Initialize(out CommandService commands, out DiscordSocketClient client)
+        {
+            client = new DiscordSocketClient(new DiscordSocketConfig {ExclusiveBulkDelete = true});
+            commands = new CommandService(new CommandServiceConfig
+            {
+                CaseSensitiveCommands = false, DefaultRunMode = RunMode.Async, IgnoreExtraArgs = true, LogLevel = LogSeverity.Info
+            });
+            commands.CommandExecuted += EventHandlers.CmdExecutedHandler;
 
-			client.Log += LogAsync;
-			commands.Log += LogAsync;
+            client.Log += LogAsync;
+            commands.Log += LogAsync;
 
-			return new InitFactory {_client = client, _commands = commands};
-		}
+            return new InitFactory {_client = client, _commands = commands};
+        }
 
-		public IServiceProvider BuildServiceProvider() =>
-			new ServiceCollection()
-				.AddSingleton(_client)
-				.AddSingleton(_commands)
-				.AddSingleton<VoiceConnectionService>()
-				.AddSingleton<SpeechService>()
-				.AddSingleton<DatabaseService>()
-				.BuildServiceProvider();
+        private DiscordSocketClient _client = new();
+        private CommandService _commands = new();
 
-		private static Task LogAsync(LogMessage arg)
-		{
-			switch (arg.Severity)
-			{
-				case LogSeverity.Critical:
-					Logging.Fatal(arg.Message, arg.Exception, arg.Source);
-					break;
-				case LogSeverity.Error:
-					Logging.Error(arg.Message, arg.Exception, arg.Source);
-					break;
-				case LogSeverity.Warning:
-					Logging.Warn(arg.Message, arg.Exception, arg.Source);
-					break;
-				case LogSeverity.Info:
-					Logging.Info(arg.Message, arg.Exception, arg.Source);
-					break;
-				case LogSeverity.Verbose:
-				case LogSeverity.Debug:
-					Logging.Debug(arg.Message, arg.Exception, arg.Source);
-					break;
-				default:
-					throw new ArgumentOutOfRangeException(nameof(arg));
-			}
+        private static Task LogAsync(LogMessage arg)
+        {
+            switch (arg.Severity)
+            {
+                case LogSeverity.Critical:
+                    Logging.Fatal(arg.Message, arg.Exception, arg.Source);
+                    break;
+                case LogSeverity.Error:
+                    Logging.Error(arg.Message, arg.Exception, arg.Source);
+                    break;
+                case LogSeverity.Warning:
+                    Logging.Warn(arg.Message, arg.Exception, arg.Source);
+                    break;
+                case LogSeverity.Info:
+                    Logging.Info(arg.Message, arg.Exception, arg.Source);
+                    break;
+                case LogSeverity.Verbose:
+                case LogSeverity.Debug:
+                    Logging.Debug(arg.Message, arg.Exception, arg.Source);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(arg));
+            }
 
-			return Task.CompletedTask;
-		}
-	}
+            return Task.CompletedTask;
+        }
+    }
 }

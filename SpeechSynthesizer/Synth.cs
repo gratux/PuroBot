@@ -24,8 +24,8 @@ namespace Bisqwit.SpeechSynthesizer
 
         public IEnumerable<byte> SynthesizeText(string message)
         {
-            List<ProsodyElement>? phonemes = Phonemize(message).ToList();
-            List<byte>? audio = VocalizePhonemes(phonemes).ToList();
+            var phonemes = Phonemize(message).ToList();
+            var audio = VocalizePhonemes(phonemes).ToList();
             return audio;
         }
 
@@ -49,7 +49,8 @@ namespace Bisqwit.SpeechSynthesizer
 
             foreach (ProsodyElement e in phonemes)
             {
-                if (!TryGetRecord(Records, e.RecordChar, out Record? record)) continue;
+                if (!TryGetRecord(Records, e.RecordChar, out Record? record))
+                    continue;
 
                 Debug.Assert(record is not null, "record is not null");
 
@@ -58,7 +59,7 @@ namespace Bisqwit.SpeechSynthesizer
                 voiceBaseLevel = Math.Clamp(voiceBaseLevel + (Rnd.NextDouble() - 0.5d) * 0.02d, 0.7d, 1.0d);
 
                 const double frameTime = SampleRate * FrameTimeFactor;
-                Frame[]? frames = record.Data;
+                var frames = record.Data;
                 int samplesCount = (int) (e.FramesCount * frameTime);
 
                 double breath = breathBaseLevel + (1.0d - breathBaseLevel) * (1.0d * record.Voice);
@@ -78,13 +79,12 @@ namespace Bisqwit.SpeechSynthesizer
                         break;
                     case RecordModes.Trill:
                         for (int n = 0; samplesCount > 0; n++)
-                        {
                             samplesCount -= doSynth(frames[n % frames.Length], Math.Min(samplesCount, (int) (frameTime * 1.5d)));
-                        }
 
                         break;
                     case RecordModes.PlayInSequence:
-                        foreach (Frame frame in frames) doSynth(frame, samplesCount / frames.Length);
+                        foreach (Frame frame in frames)
+                            doSynth(frame, samplesCount / frames.Length);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -105,7 +105,12 @@ namespace Bisqwit.SpeechSynthesizer
             _last.Clear();
         }
 
-        private IEnumerable<byte> Synthesize(Frame frame, double volume, double breath, double buzz, double pitch, uint sampleRate,
+        private IEnumerable<byte> Synthesize(Frame frame,
+            double volume,
+            double breath,
+            double buzz,
+            double pitch,
+            uint sampleRate,
             int nSamples)
         {
             _pGain = frame.Gain;
@@ -134,13 +139,11 @@ namespace Bisqwit.SpeechSynthesizer
                     double w = (_count %= (int) (sampleRate / pitch)) / (sampleRate / pitch);
                     double f = (Rnd.NextDouble() - .5) * GetWithHysteresis(_pBreath, -12) +
                         (Math.Pow(2, w) - 1 / (1 + w)) * GetWithHysteresis(_pBuzz, -12);
-                    if (!double.IsFinite(f)) throw new Exception("f is not finite");
+                    Debug.Assert(double.IsFinite(f));
 
                     double sum = f;
                     for (int j = 0; j < frame.Coefficients.Length; j++)
-                    {
                         sum -= GetWithHysteresis(frame.Coefficients[j], hysteresis) * _bp[(_offset + MaxOrder - j) % MaxOrder];
-                    }
 
                     if (!double.IsFinite(sum) || double.IsNaN(sum))
                     {
@@ -161,7 +164,8 @@ namespace Bisqwit.SpeechSynthesizer
                         retries2++;
                         amplitudeLimit += 500;
                         slice.Clear();
-                        if (retries2 < 100) clipping = true;
+                        if (retries2 < 100)
+                            clipping = true;
                         //clippingRetries maximum reached, compromise by generating clipping sample
                     }
 
@@ -207,12 +211,12 @@ namespace Bisqwit.SpeechSynthesizer
         {
             Utf32String input = Canonize(text);
 
-            int[]? syllableId = new int[input.Count];
+            int[] syllableId = new int[input.Count];
             int currentSyllable = 1;
             for (int position = 0; position < input.Count; currentSyllable++)
                 position = AssignSyllableId(position, input, syllableId, ref currentSyllable);
 
-            List<double>? pitchCurve = Enumerable.Repeat(1.0d, currentSyllable).ToList();
+            var pitchCurve = Enumerable.Repeat(1.0d, currentSyllable).ToList();
             int begin = 0;
             int end = syllableId.Length - 1;
 
@@ -224,7 +228,8 @@ namespace Bisqwit.SpeechSynthesizer
                     // Find the matching '>', or '|'
                     begin = i;
                     end = input.IndexOfAny(i + 1, '>', '|');
-                    if (end == -1) end = input.Count;
+                    if (end == -1)
+                        end = input.Count;
                     first = input[i] == '<' ? 1.4d : 1.25d;
 
                     //end may be one above the array bounds, treat as null terminator in that case
@@ -237,8 +242,10 @@ namespace Bisqwit.SpeechSynthesizer
 
                 // Interpolate pitch between the syllables that have '<' or '|' and those that have '>' or '|'
                 double fltPos = midPos;
-                if (syllableId[i] == syllableId[begin]) fltPos = 0;
-                if (syllableId[i] == syllableId[end]) fltPos = 0.95d + Rnd.NextDouble() * 0.1d;
+                if (syllableId[i] == syllableId[begin])
+                    fltPos = 0;
+                if (syllableId[i] == syllableId[end])
+                    fltPos = 0.95d + Rnd.NextDouble() * 0.1d;
                 fltPos += Rnd.NextDouble() * 0.2d;
                 pitchCurve[syllableId[i]] = first + (last - first) * fltPos;
             }
@@ -251,7 +258,8 @@ namespace Bisqwit.SpeechSynthesizer
                 var repLenFunc = new Func<uint>(() =>
                 {
                     uint r = 0;
-                    for (; input[endPos] == input.ElementAtOrDefault(endPos + 1); r++) endPos++;
+                    for (; input[endPos] == input.ElementAtOrDefault(endPos + 1); r++)
+                        endPos++;
                     return r;
                 });
 
@@ -293,12 +301,16 @@ namespace Bisqwit.SpeechSynthesizer
         {
             var isEndPunctuation = new Func<Utf32Char, bool>(Utf32String.FromUtf16(">¯q\"").Contains);
 
-            while (position < input.Count && !IsAlphabet(input[position])) syllableId[position++] = currentSyllable++;
-            while (position < input.Count && IsConsonant(input[position])) syllableId[position++] = currentSyllable;
-            while (position < input.Count && IsVowel(input[position])) syllableId[position++] = currentSyllable;
+            while (position < input.Count && !IsAlphabet(input[position]))
+                syllableId[position++] = currentSyllable++;
+            while (position < input.Count && IsConsonant(input[position]))
+                syllableId[position++] = currentSyllable;
+            while (position < input.Count && IsVowel(input[position]))
+                syllableId[position++] = currentSyllable;
             while (position < input.Count && IsConsonant(input[position]) && !IsVowel(input[position + 1]))
                 syllableId[position++] = currentSyllable;
-            while (position < input.Count && isEndPunctuation(input[position])) syllableId[position++] = currentSyllable;
+            while (position < input.Count && isEndPunctuation(input[position]))
+                syllableId[position++] = currentSyllable;
             return position;
         }
 
@@ -316,7 +328,8 @@ namespace Bisqwit.SpeechSynthesizer
             }
 
             var result = new Utf32String();
-            for (int position = 1; position < text.Count;) position = ApplyConversionRules(text, position, rules, result);
+            for (int position = 1; position < text.Count;)
+                position = ApplyConversionRules(text, position, rules, result);
 
             //ChangeAccentAsync(result, FinnishAccentTab);
             ChangeAccentAsync(result, EnglishAccentTab);
@@ -338,7 +351,8 @@ namespace Bisqwit.SpeechSynthesizer
                 bool rMatch = MatchesRulePattern(lPattern, text.Chars.ReverseNotInPlace().GetEnumerator());
 
                 // current rule doesn't match, try next
-                if (!lMatch || !mMatch || !rMatch) continue;
+                if (!lMatch || !mMatch || !rMatch)
+                    continue;
 
                 result.AddRange(rule[3]);
                 position += mPattern.Count;
@@ -346,7 +360,8 @@ namespace Bisqwit.SpeechSynthesizer
                 break;
             }
 
-            if (!ruleMatched) result.Add(text[position++]);
+            if (!ruleMatched)
+                result.Add(text[position++]);
 
             return position;
         }
@@ -366,7 +381,7 @@ namespace Bisqwit.SpeechSynthesizer
 
             var defaultMatcher = new Func<Utf32Char, bool>(patternChar => patternChar == textEnumerator.TryGetNext());
 
-            IEnumerable<bool>? results = pattern.Select(patternChar =>
+            var results = pattern.Select(patternChar =>
                 patternMatchers.GetValueOrDefault(patternChar, defaultMatcher).Invoke(patternChar));
 
             return results.All(result => result);
@@ -375,12 +390,15 @@ namespace Bisqwit.SpeechSynthesizer
         private static bool IsSpecialLetterCombination(IEnumerator<Utf32Char> textEnumerator)
         {
             Utf32Char? c = textEnumerator.TryGetNext();
-            if (c == 'i') return textEnumerator.TryGetNext() == 'n' && textEnumerator.TryGetNext() == 'g';
+            if (c == 'i')
+                return textEnumerator.TryGetNext() == 'n' && textEnumerator.TryGetNext() == 'g';
 
-            if (c != 'e') return false;
+            if (c != 'e')
+                return false;
 
             Utf32Char? c2 = textEnumerator.TryGetNext();
-            if (c2 == 'l') return textEnumerator.TryGetNext() == 'y';
+            if (c2 == 'l')
+                return textEnumerator.TryGetNext() == 'y';
 
             return c2 == 'r' || c2 == 's' || c2 == 'd';
         }
@@ -393,14 +411,16 @@ namespace Bisqwit.SpeechSynthesizer
 
         private static bool IsConsonantBlock(IEnumerator<Utf32Char> textEnumerator)
         {
-            while (IsConsonant(textEnumerator.Current)) textEnumerator.MoveNext();
+            while (IsConsonant(textEnumerator.Current))
+                textEnumerator.MoveNext();
             return true;
         }
 
         private static bool IsVowelBlock(IEnumerator<Utf32Char> textEnumerator)
         {
             uint n = 0;
-            for (; IsVowel(textEnumerator.Current); n++) textEnumerator.MoveNext();
+            for (; IsVowel(textEnumerator.Current); n++)
+                textEnumerator.MoveNext();
             return n != 0;
         }
 
@@ -417,14 +437,16 @@ namespace Bisqwit.SpeechSynthesizer
 
         private static void ApplyAccentRules(Utf32String result, Dictionary<Utf32String, Utf32String> rules)
         {
-            for (int position = 0; position < result.Count; position++) position = ApplyAccentRulesAt(position, result, rules);
+            for (int position = 0; position < result.Count; position++)
+                position = ApplyAccentRulesAt(position, result, rules);
         }
 
         private static int ApplyAccentRulesAt(int position, Utf32String result, Dictionary<Utf32String, Utf32String> rules)
         {
             foreach (var (initial, replacement) in rules)
             {
-                if (!result.Matches(initial, position, initial.Count)) continue;
+                if (!result.Matches(initial, position, initial.Count))
+                    continue;
 
                 result.Replace(position, initial.Count, replacement);
                 position += replacement.Count - 1;
@@ -450,7 +472,8 @@ namespace Bisqwit.SpeechSynthesizer
 
             foreach (var (initial, replacement) in rules)
             {
-                if (!result.Matches(initial, position, initial.Count)) continue;
+                if (!result.Matches(initial, position, initial.Count))
+                    continue;
 
                 result.Replace(position, initial.Count, replacement);
                 rulesApplied = true;

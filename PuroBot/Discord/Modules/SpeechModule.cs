@@ -9,64 +9,74 @@ using PuroBot.Extensions;
 
 namespace PuroBot.Discord.Modules
 {
-	[RequireUserPermission(GuildPermission.Administrator)]
-	[RequireContext(ContextType.Guild)]
-	public class SpeechModule : ModuleBase<SocketCommandContext>
-	{
-		private readonly SpeechService _speech;
-		private readonly VoiceConnectionService _voice;
+    [RequireUserPermission(GuildPermission.Administrator)]
+    [RequireContext(ContextType.Guild)]
+    public class SpeechModule : ModuleBase<SocketCommandContext>
+    {
+        public SpeechModule(VoiceConnectionService voice, SpeechService speech)
+        {
+            _voice = voice;
+            _speech = speech;
+        }
 
-		public SpeechModule(VoiceConnectionService voice, SpeechService speech)
-		{
-			_voice = voice;
-			_speech = speech;
-		}
+        [Command("espeak")]
+        public async Task ESpeakCommand([Remainder] string message)
+        {
+            string tempWav = Path.GetTempFileName();
+            string tempRaw = Path.GetTempFileName();
 
-		[Command("speak")]
-		[Alias("tts")]
-		public async Task SpeechCommand([Remainder] string message)
-		{
-			using var channelAcquirer = await VoiceConnectionService.ChannelHandle.Create(_voice, Context);
-			VoiceConnectionService.VoiceInfo? voiceInfo = channelAcquirer.VoiceInfo;
-			if (voiceInfo is null) //failed to connect
-				return;
+            var procInfo = new ProcessStartInfo
+            {
+                FileName = "/usr/bin/espeak-ng", ArgumentList = {"-w", tempWav, message}, UseShellExecute = false
+            };
+            var proc = new Process {StartInfo = procInfo};
+            proc.Start();
+            await proc.WaitForExitAsync();
 
-			var pcm = _speech.SynthesizeMessageAsync(message).NormalizeAudio().ToArray();
-			await voiceInfo.AudioStream.WriteAsync(pcm);
-		}
+            procInfo = new ProcessStartInfo
+            {
+                FileName = "/usr/bin/ffmpeg",
+                ArgumentList =
+                {
+                    "-i",
+                    tempWav,
+                    "-ac",
+                    "2",
+                    "-ar",
+                    "48000",
+                    "-f",
+                    "s16le",
+                    "-y",
+                    tempRaw
+                },
+                UseShellExecute = false
+            };
+            proc = new Process {StartInfo = procInfo};
+            proc.Start();
+            await proc.WaitForExitAsync();
 
-		[Command("espeak")]
-		public async Task ESpeakCommand([Remainder] string message)
-		{
-			var tempWav = Path.GetTempFileName();
-			var tempRaw = Path.GetTempFileName();
+            using var channelAcquirer = await VoiceConnectionService.ChannelHandle.Create(_voice, Context);
+            VoiceConnectionService.VoiceInfo? voiceInfo = channelAcquirer.VoiceInfo;
+            if (voiceInfo is null) //failed to connect
+                return;
+            byte[] pcm = await File.ReadAllBytesAsync(tempRaw);
+            await voiceInfo.AudioStream.WriteAsync(pcm.NormalizeAudio().ToArray());
+        }
 
-			var procInfo = new ProcessStartInfo
-			{
-				FileName = "/usr/bin/espeak-ng",
-				ArgumentList = {"-w", tempWav, message},
-				UseShellExecute = false
-			};
-			var proc = new Process {StartInfo = procInfo};
-			proc.Start();
-			await proc.WaitForExitAsync();
+        [Command("speak")]
+        [Alias("tts")]
+        public async Task SpeechCommand([Remainder] string message)
+        {
+            using var channelAcquirer = await VoiceConnectionService.ChannelHandle.Create(_voice, Context);
+            VoiceConnectionService.VoiceInfo? voiceInfo = channelAcquirer.VoiceInfo;
+            if (voiceInfo is null) //failed to connect
+                return;
 
-			procInfo = new ProcessStartInfo
-			{
-				FileName = "/usr/bin/ffmpeg",
-				ArgumentList = {"-i", tempWav, "-ac", "2", "-ar", "48000", "-f", "s16le", "-y", tempRaw},
-				UseShellExecute = false
-			};
-			proc = new Process {StartInfo = procInfo};
-			proc.Start();
-			await proc.WaitForExitAsync();
+            byte[] pcm = _speech.SynthesizeMessageAsync(message).NormalizeAudio().ToArray();
+            await voiceInfo.AudioStream.WriteAsync(pcm);
+        }
 
-			using var channelAcquirer = await VoiceConnectionService.ChannelHandle.Create(_voice, Context);
-			VoiceConnectionService.VoiceInfo? voiceInfo = channelAcquirer.VoiceInfo;
-			if (voiceInfo is null) //failed to connect
-				return;
-			var pcm = await File.ReadAllBytesAsync(tempRaw);
-			await voiceInfo.AudioStream.WriteAsync(pcm.NormalizeAudio().ToArray());
-		}
-	}
+        private readonly SpeechService _speech;
+        private readonly VoiceConnectionService _voice;
+    }
 }

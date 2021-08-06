@@ -13,8 +13,10 @@ namespace Bisqwit.SpeechSynthesizer
 
         public override bool Equals(object? obj)
         {
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
+            if (ReferenceEquals(null, obj))
+                return false;
+            if (ReferenceEquals(this, obj))
+                return true;
             return obj.GetType() == GetType() && Equals((Utf32Char) obj);
         }
 
@@ -23,7 +25,8 @@ namespace Bisqwit.SpeechSynthesizer
             for (int i = 0; i < s.Length; i++)
             {
                 int unicodeCodePoint = char.ConvertToUtf32(s, i);
-                if (unicodeCodePoint > 0xffff) i++;
+                if (unicodeCodePoint > 0xffff)
+                    i++;
 
                 yield return new Utf32Char(unicodeCodePoint);
             }
@@ -76,8 +79,10 @@ namespace Bisqwit.SpeechSynthesizer
 
         private bool Equals(Utf32Char? other)
         {
-            if (ReferenceEquals(null, other)) return false;
-            if (ReferenceEquals(this, other)) return true;
+            if (ReferenceEquals(null, other))
+                return false;
+            if (ReferenceEquals(this, other))
+                return true;
             return Value == other.Value;
         }
     }

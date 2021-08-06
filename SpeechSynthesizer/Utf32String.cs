@@ -21,10 +21,7 @@ namespace Bisqwit.SpeechSynthesizer
             set => Chars[index] = value;
         }
 
-        public int Count
-        {
-            get => Chars.Count;
-        }
+        public int Count => Chars.Count;
 
         public void Add(Utf32Char value)
         {

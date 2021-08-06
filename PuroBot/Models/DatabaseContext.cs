@@ -22,10 +22,15 @@ namespace PuroBot.Models
                 entity.ToTable("Server");
                 entity.HasKey(serverSettings => serverSettings.Id);
 
-                entity.Property(serverSettings => serverSettings.Id).HasColumnName("ServerId").HasColumnType("bigserial").IsRequired();
+                entity.Property(serverSettings => serverSettings.Id)
+                    .HasColumnName("ServerId")
+                    .HasColumnType("bigserial")
+                    .IsRequired();
 
-                entity.Property(serverSettings => serverSettings.Prefix).HasColumnName("CommandPrefix")
-                    .HasColumnType("character varying(10)").HasMaxLength(10);
+                entity.Property(serverSettings => serverSettings.Prefix)
+                    .HasColumnName("CommandPrefix")
+                    .HasColumnType("character varying(10)")
+                    .HasMaxLength(10);
             });
 
             modelBuilder.Entity<BotActivity>(entity =>
@@ -33,12 +38,22 @@ namespace PuroBot.Models
                 entity.ToTable("Activity");
                 entity.HasKey(activity => activity.Id);
 
-                entity.Property(botActivity => botActivity.Id).HasColumnName("Id").HasColumnType("serial").IsRequired();
+                entity.Property(botActivity => botActivity.Id)
+                    .HasColumnName("Id")
+                    .HasColumnType("serial")
+                    .IsRequired();
 
-                entity.Property(botActivity => botActivity.Name).HasColumnName("Name").HasColumnType("text").IsRequired();
+                entity.Property(botActivity => botActivity.Name)
+                    .HasColumnName("Name")
+                    .HasColumnType("text")
+                    .IsRequired();
 
-                entity.Property(botActivity => botActivity.Type).HasColumnName("Type").HasColumnType("activitytype").IsRequired()
-                    .HasDefaultValue(ActivityType.Playing).HasConversion<string>();
+                entity.Property(botActivity => botActivity.Type)
+                    .HasColumnName("Type")
+                    .HasColumnType("activitytype")
+                    .IsRequired()
+                    .HasDefaultValue(ActivityType.Playing)
+                    .HasConversion<string>();
             });
         }
     }

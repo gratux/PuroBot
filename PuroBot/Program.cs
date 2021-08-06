@@ -13,7 +13,7 @@ namespace PuroBot
     {
         private static async Task Main()
         {
-            string? token = Secrets.BotToken;
+            string token = Secrets.BotToken;
             IServiceProvider services = InitFactory.Initialize(out CommandService commands, out DiscordSocketClient client)
                 .BuildServiceProvider();
 

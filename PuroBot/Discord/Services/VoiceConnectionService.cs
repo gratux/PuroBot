@@ -9,239 +9,248 @@ using Discord.Commands;
 
 namespace PuroBot.Discord.Services
 {
-	public class VoiceConnectionService
-	{
-		private static readonly TimeSpan ChannelTimeout = new(0, 5, 0);
+    public class VoiceConnectionService
+    {
+        private static readonly TimeSpan ChannelTimeout = new(0, 5, 0);
 
-		private readonly List<ConnectionInfo> _activeConnections = new();
+        public Task LeaveChannel(ICommandContext context)
+        {
+            RemoveConnection(context.Guild.Id);
+            return Task.CompletedTask;
+        }
 
-		private async Task<VoiceInfo?> AcquireChannel(ICommandContext context, IVoiceChannel? channel = null)
-		{
-			// join the specified/default voice channel
-			// 
-			// if already connected to a different voice channel -> wait until no longer in use, rejoin to new channel
-			// if same channel -> wait until no longer in use before return
-			// if not connected -> join and lock
+        private readonly List<ConnectionInfo> _activeConnections = new();
 
-			ConnectionInfo? connection = GetActiveConnection(context.Guild.Id);
-			IVoiceChannel? targetChannel = await GetTargetChannel(context, channel, connection);
-			if (targetChannel is null) // target channel could not be determined
-				return null;
+        private async Task<VoiceInfo?> AcquireChannel(ICommandContext context, IVoiceChannel? channel = null)
+        {
+            // join the specified/default voice channel
+            // 
+            // if already connected to a different voice channel -> wait until no longer in use, rejoin to new channel
+            // if same channel -> wait until no longer in use before return
+            // if not connected -> join and lock
 
-			if (connection is null) // not connected -> connect and lock
-				return await CreateNewConnection(context, targetChannel);
+            ConnectionInfo? connection = GetActiveConnection(context.Guild.Id);
+            IVoiceChannel? targetChannel = await GetTargetChannel(context, channel, connection);
+            if (targetChannel is null) // target channel could not be determined
+                return null;
 
-			await connection.Lock();
+            if (connection is null) // not connected -> connect and lock
+                return await CreateNewConnection(context, targetChannel);
 
-			if (connection.VoiceInfo.VoiceChannel == targetChannel) return connection.VoiceInfo;
+            await connection.Lock();
 
-			VoiceInfo? info = await JoinChannel(targetChannel);
-			if (info is null)
-				return null;
+            if (connection.VoiceInfo.VoiceChannel == targetChannel)
+                return connection.VoiceInfo;
 
-			return connection.VoiceInfo = info;
-		}
+            VoiceInfo? info = await JoinChannel(targetChannel);
+            if (info is null)
+                return null;
 
-		private void ReleaseChannel(ICommandContext context)
-		{
-			// start timeout for disconnect and unlock
-			//
-			// if not connected -> throw
-			// if channel not locked -> throw
-			ConnectionInfo? connection = GetActiveConnection(context.Guild.Id);
+            return connection.VoiceInfo = info;
+        }
 
-			if (connection is null || !connection.IsLocked)
-				throw new ArgumentException("no locked connection to release", nameof(context));
+        private void ReleaseChannel(ICommandContext context)
+        {
+            // start timeout for disconnect and unlock
+            //
+            // if not connected -> throw
+            // if channel not locked -> throw
+            ConnectionInfo? connection = GetActiveConnection(context.Guild.Id);
 
-			connection.Release();
-		}
+            if (connection is null || !connection.IsLocked)
+                throw new ArgumentException("no locked connection to release", nameof(context));
 
-		public Task LeaveChannel(ICommandContext context)
-		{
-			RemoveConnection(context.Guild.Id);
-			return Task.CompletedTask;
-		}
+            connection.Release();
+        }
 
-		private async Task<VoiceInfo?> CreateNewConnection(ICommandContext context, IVoiceChannel channel)
-		{
-			VoiceInfo? voiceInfo = await JoinChannel(channel);
-			if (voiceInfo is null) // connection failed, do not lock
-				return null;
+        private async Task<VoiceInfo?> CreateNewConnection(ICommandContext context, IVoiceChannel channel)
+        {
+            VoiceInfo? voiceInfo = await JoinChannel(channel);
+            if (voiceInfo is null) // connection failed, do not lock
+                return null;
 
-			var connection = new ConnectionInfo(context.Guild.Id, voiceInfo, () => RemoveConnection(context.Guild.Id));
-			await connection.Lock();
+            var connection = new ConnectionInfo(context.Guild.Id, voiceInfo, () => RemoveConnection(context.Guild.Id));
+            await connection.Lock();
 
-			AddConnection(connection);
+            AddConnection(connection);
 
-			return connection.VoiceInfo;
-		}
+            return connection.VoiceInfo;
+        }
 
-		private static async Task<IVoiceChannel?> GetTargetChannel(ICommandContext context, IVoiceChannel? channel,
-			ConnectionInfo? connection)
-		{
-			IVoiceChannel? targetChannel = channel;
+        private static async Task<IVoiceChannel?> GetTargetChannel(ICommandContext context,
+            IVoiceChannel? channel,
+            ConnectionInfo? connection)
+        {
+            IVoiceChannel? targetChannel = channel;
 
-			// re-use current connection if no channel was specified
-			targetChannel ??= connection?.VoiceInfo.VoiceChannel;
+            // re-use current connection if no channel was specified
+            targetChannel ??= connection?.VoiceInfo.VoiceChannel;
 
-			// not connected and no channel specified, use channel of user
-			targetChannel ??= (context.User as IGuildUser)?.VoiceChannel;
+            // not connected and no channel specified, use channel of user
+            targetChannel ??= (context.User as IGuildUser)?.VoiceChannel;
 
-			if (targetChannel is not null) return targetChannel;
+            if (targetChannel is not null)
+                return targetChannel;
 
-			// target channel still unknown, can't connect
-			await context.Channel.SendMessageAsync(
-				"User must be in a voice channel, or a voice channel must be passed as an argument.");
-			return null;
-		}
+            // target channel still unknown, can't connect
+            await context.Channel.SendMessageAsync(
+                "User must be in a voice channel, or a voice channel must be passed as an argument.");
+            return null;
+        }
 
-		/// <summary>
-		///     establishes a connection with a voice channel
-		/// </summary>
-		/// <param name="channel">the channel to connect to</param>
-		/// <returns>the information of the joined channel; <see langword="null" /> if failed</returns>
-		private static async Task<VoiceInfo?> JoinChannel(IVoiceChannel channel)
-		{
-			IAudioClient? audioClient = await channel.ConnectAsync();
-			AudioOutStream? audioStream = audioClient?.CreatePCMStream(AudioApplication.Mixed, bufferMillis: 200);
-			if (audioStream is null)
-				return null;
+        /// <summary> establishes a connection with a voice channel </summary>
+        /// <param name="channel"> the channel to connect to </param>
+        /// <returns> the information of the joined channel; <see langword="null" /> if failed </returns>
+        private static async Task<VoiceInfo?> JoinChannel(IVoiceChannel channel)
+        {
+            IAudioClient? audioClient = await channel.ConnectAsync();
+            AudioOutStream? audioStream = audioClient?.CreatePCMStream(AudioApplication.Mixed, bufferMillis: 200);
+            if (audioStream is null)
+                return null;
 
-			var voiceInfo = new VoiceInfo(audioStream, channel);
+            var voiceInfo = new VoiceInfo(audioStream, channel);
 
-			return voiceInfo;
-		}
+            return voiceInfo;
+        }
 
-		private void AddConnection(ConnectionInfo connection)
-		{
-			lock (_activeConnections)
-			{
-				_activeConnections.Add(connection);
-			}
-		}
+        private void AddConnection(ConnectionInfo connection)
+        {
+            lock (_activeConnections)
+            {
+                _activeConnections.Add(connection);
+            }
+        }
 
-		private ConnectionInfo? GetActiveConnection(ulong guildId)
-		{
-			lock (_activeConnections)
-			{
-				return _activeConnections.FirstOrDefault(i => i.GuildId == guildId);
-			}
-		}
+        private ConnectionInfo? GetActiveConnection(ulong guildId)
+        {
+            lock (_activeConnections)
+            {
+                return _activeConnections.FirstOrDefault(i => i.GuildId == guildId);
+            }
+        }
 
-		private void RemoveConnection(ulong guildId)
-		{
-			lock (_activeConnections)
-			{
-				foreach (var info in _activeConnections.Where(i => i.GuildId == guildId)) info.Dispose();
+        private void RemoveConnection(ulong guildId)
+        {
+            lock (_activeConnections)
+            {
+                foreach (var info in _activeConnections.Where(i => i.GuildId == guildId))
+                    info.Dispose();
 
-				_activeConnections.RemoveAll(i => i.GuildId == guildId);
-			}
-		}
+                _activeConnections.RemoveAll(i => i.GuildId == guildId);
+            }
+        }
 
-		public class VoiceInfo : IDisposable
-		{
-			public VoiceInfo(AudioOutStream audioStream, IVoiceChannel voiceChannel)
-			{
-				AudioStream = audioStream;
-				VoiceChannel = voiceChannel;
-			}
+        public class VoiceInfo : IDisposable
+        {
+            public VoiceInfo(AudioOutStream audioStream, IVoiceChannel voiceChannel)
+            {
+                AudioStream = audioStream;
+                VoiceChannel = voiceChannel;
+            }
 
-			public AudioOutStream AudioStream { get; }
-			public IVoiceChannel VoiceChannel { get; }
+            public AudioOutStream AudioStream { get; }
+            public IVoiceChannel VoiceChannel { get; }
 
-			public void Dispose()
-			{
-				VoiceChannel.DisconnectAsync();
-				AudioStream.Dispose();
-				GC.SuppressFinalize(this);
-			}
-		}
+            public void Dispose()
+            {
+                VoiceChannel.DisconnectAsync();
+                AudioStream.Dispose();
+                GC.SuppressFinalize(this);
+            }
+        }
 
-		private class ConnectionInfo : IDisposable
-		{
-			private readonly Timer _timeoutTimer;
-			private readonly SemaphoreSlim _usageLock = new(1);
-			private VoiceInfo _voiceInfo;
+        private class ConnectionInfo : IDisposable
+        {
+            public ConnectionInfo(ulong guildId, VoiceInfo voiceInfo, Action timeoutAction)
+            {
+                GuildId = guildId;
+                _voiceInfo = voiceInfo;
 
-			public ConnectionInfo(ulong guildId, VoiceInfo voiceInfo, Action timeoutAction)
-			{
-				GuildId = guildId;
-				_voiceInfo = voiceInfo;
+                _timeoutTimer = new Timer(_ => timeoutAction());
+            }
 
-				_timeoutTimer = new Timer(_ => timeoutAction());
-			}
+            public ulong GuildId { get; }
 
-			public ulong GuildId { get; }
+            public VoiceInfo VoiceInfo
+            {
+                get => _voiceInfo;
+                set
+                {
+                    _voiceInfo.Dispose();
+                    _voiceInfo = value;
+                }
+            }
 
-			public VoiceInfo VoiceInfo
-			{
-				get => _voiceInfo;
-				set
-				{
-					_voiceInfo.Dispose();
-					_voiceInfo = value;
-				}
-			}
+            public bool IsLocked { get; private set; }
 
-			public bool IsLocked { get; private set; }
+            public void Dispose()
+            {
+                _voiceInfo.Dispose();
+                _timeoutTimer.Dispose();
+                _usageLock.Dispose();
+            }
 
-			public void Dispose()
-			{
-				_voiceInfo.Dispose();
-				_timeoutTimer.Dispose();
-				_usageLock.Dispose();
-			}
+            public async Task Lock()
+            {
+                await _usageLock.WaitAsync();
+                IsLocked = true;
+                StopTimeout();
+            }
 
-			public async Task Lock()
-			{
-				await _usageLock.WaitAsync();
-				IsLocked = true;
-				StopTimeout();
-			}
+            public void Release()
+            {
+                _usageLock.Release();
+                IsLocked = false;
+                StartTimeout();
+            }
 
-			public void Release()
-			{
-				_usageLock.Release();
-				IsLocked = false;
-				StartTimeout();
-			}
+            private readonly Timer _timeoutTimer;
+            private readonly SemaphoreSlim _usageLock = new(1);
+            private VoiceInfo _voiceInfo;
 
-			private void StartTimeout() => _timeoutTimer.Change(ChannelTimeout, Timeout.InfiniteTimeSpan);
+            private void StartTimeout()
+            {
+                _timeoutTimer.Change(ChannelTimeout, Timeout.InfiniteTimeSpan);
+            }
 
-			private void StopTimeout() => _timeoutTimer.Change(Timeout.Infinite, Timeout.Infinite);
-		}
+            private void StopTimeout()
+            {
+                _timeoutTimer.Change(Timeout.Infinite, Timeout.Infinite);
+            }
+        }
 
-		public class ChannelHandle : IDisposable
-		{
-			private readonly ICommandContext _context;
-			private readonly VoiceConnectionService _voice;
+        public class ChannelHandle : IDisposable
+        {
+            private ChannelHandle(VoiceConnectionService voice, ICommandContext context)
+            {
+                _voice = voice;
+                _context = context;
+            }
 
-			private ChannelHandle(VoiceConnectionService voice, ICommandContext context)
-			{
-				_voice = voice;
-				_context = context;
-			}
+            public VoiceInfo? VoiceInfo { get; private set; }
 
-			public VoiceInfo? VoiceInfo { get; private set; }
+            public static async Task<ChannelHandle> Create(VoiceConnectionService voice,
+                ICommandContext context,
+                IVoiceChannel? channel = null)
+            {
+                var ca = new ChannelHandle(voice, context);
+                await ca.Acquire(channel);
+                return ca;
+            }
 
-			public void Dispose()
-			{
-				_voice.ReleaseChannel(_context);
-				GC.SuppressFinalize(this);
-			}
+            public void Dispose()
+            {
+                _voice.ReleaseChannel(_context);
+                GC.SuppressFinalize(this);
+            }
 
-			private async Task Acquire(IVoiceChannel? channel)
-			{
-				VoiceInfo = await _voice.AcquireChannel(_context, channel);
-			}
+            private readonly ICommandContext _context;
+            private readonly VoiceConnectionService _voice;
 
-			public static async Task<ChannelHandle> Create(VoiceConnectionService voice, ICommandContext context,
-				IVoiceChannel? channel = null)
-			{
-				var ca = new ChannelHandle(voice, context);
-				await ca.Acquire(channel);
-				return ca;
-			}
-		}
-	}
+            private async Task Acquire(IVoiceChannel? channel)
+            {
+                VoiceInfo = await _voice.AcquireChannel(_context, channel);
+            }
+        }
+    }
 }
