@@ -23,13 +23,12 @@ namespace PuroBot.Discord.Modules
         public async Task ESpeakCommand([Remainder] string message)
         {
             string tempWav = Path.GetTempFileName();
-            string tempRaw = Path.GetTempFileName();
 
             var procInfo = new ProcessStartInfo
             {
-                FileName = "/usr/bin/espeak-ng", ArgumentList = {"-w", tempWav, message}, UseShellExecute = false
+                FileName = "/usr/bin/espeak-ng", ArgumentList = { "-w", tempWav, message }, UseShellExecute = false
             };
-            var proc = new Process {StartInfo = procInfo};
+            var proc = new Process { StartInfo = procInfo };
             proc.Start();
             await proc.WaitForExitAsync();
 
@@ -46,21 +45,20 @@ namespace PuroBot.Discord.Modules
                     "48000",
                     "-f",
                     "s16le",
-                    "-y",
-                    tempRaw
+                    "-"
                 },
-                UseShellExecute = false
+                UseShellExecute = false,
+                RedirectStandardOutput = true
             };
-            proc = new Process {StartInfo = procInfo};
+            proc = new Process { StartInfo = procInfo };
             proc.Start();
-            await proc.WaitForExitAsync();
 
             using var channelAcquirer = await VoiceConnectionService.ChannelHandle.Create(_voice, Context);
             VoiceConnectionService.VoiceInfo? voiceInfo = channelAcquirer.VoiceInfo;
             if (voiceInfo is null) //failed to connect
                 return;
-            byte[] pcm = await File.ReadAllBytesAsync(tempRaw);
-            await voiceInfo.AudioStream.WriteAsync(pcm.NormalizeAudio().ToArray());
+
+            await proc.StandardOutput.BaseStream.CopyToAsync(voiceInfo.AudioStream);
         }
 
         [Command("speak")]
