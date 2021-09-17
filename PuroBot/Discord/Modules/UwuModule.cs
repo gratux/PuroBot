@@ -35,7 +35,7 @@ namespace PuroBot.Discord.Modules
         [Summary("translates the mentioned message to uwu-speak")]
         public async Task UwuThisCommand()
         {
-            // this returns null, if the message was written before the bot was online. why?!
+            // BUG: this returns null, if the message was written before the bot was online. why?!
             string? mentioned = Context.Message.ReferencedMessage.Content;
             if (await CheckMsgEmpty(Context, mentioned))
                 return;
